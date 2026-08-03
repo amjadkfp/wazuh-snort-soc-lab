@@ -5,6 +5,14 @@ A step-by-step record of implementing host-based SSH brute-force detection, buil
 
 ---
 
+## 🗺️ Architecture Diagram
+
+<p align="center">
+  <img src="../diagrams/phase1_architecture.png" alt="Architecture Diagram" width="100%">
+</p>
+
+---
+
 ### 🔷 PHASE 1 — SSH Brute Force Detection
 
 | Step | Command(s) Used | Screenshot | Description |
