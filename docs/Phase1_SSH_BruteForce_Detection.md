@@ -1,0 +1,41 @@
+---
+## 📸 Phase 1 Procedure & Screenshots — SSH Brute Force Detection
+
+A step-by-step record of implementing host-based SSH brute-force detection, building on the existing Snort NIDS integration (Phase 0).
+
+---
+
+### 🔷 PHASE 1 — SSH Brute Force Detection
+
+| Step | Command(s) Used | Screenshot | Description |
+|---|---|---|---|
+| **1. Confirm SSH Service on Victim** | `sudo systemctl status ssh` | `screenshots/Fig 31.png` | Verified `sshd` was installed and actively listening on port 22 on the Ubuntu-Victim host — the log source this phase depends on. |
+| **2. Confirm auth.log Is Active** | `sudo tail -n 20 /var/log/auth.log` | `screenshots/Fig 32.png` | Confirmed `/var/log/auth.log` was actively recording session and login activity, establishing it as a valid Wazuh monitoring target. |
+| **3. Add `<localfile>` for auth.log** | `sudo nano /var/ossec/etc/ossec.conf` *(added `<localfile>` block, log_format `syslog`, location `/var/log/auth.log`)* | `screenshots/Fig 33.png` | Configured the Wazuh Agent to monitor SSH authentication logs, placed correctly within an existing `<ossec_config>` block alongside other syslog-format entries. |
+| **4. Restart Agent & Verify Monitoring** | `sudo systemctl restart wazuh-agent`<br>`sudo grep "auth.log" /var/ossec/logs/ossec.log` | `screenshots/Fig 34.png` | Confirmed via agent log: `wazuh-logcollector` actively analyzing `/var/log/auth.log` — the core log-ingestion point for this phase. |
+| **5. Confirm Password Authentication Enabled** | `sudo grep -i "PasswordAuthentication" /etc/ssh/sshd_config` | `screenshots/Fig 35.png` | Verified `PasswordAuthentication` was not explicitly disabled (commented default = yes), ensuring simulated failed logins would reach `sshd`'s authentication logic. |
+| **6. Install sshpass on Manager** | `sudo yum install sshpass -y` | — | Installed non-interactive SSH password automation tool on the Wazuh-Manager VM, which doubled as the attacker host (consistent with prior Kali resource-constraint pivot). |
+| **7. Resolve SSH Key-Exchange Compatibility** | `ssh -Q kex`<br>`sudo update-crypto-policies --show` | `screenshots/Fig 36.png` | Diagnosed initial connection failures as a KexAlgorithms mismatch (not FIPS restriction as first suspected); confirmed `ecdh-sha2-nistp256` was supported and crypto policy was `DEFAULT`. |
+| **8. Build & Run Brute-Force Script (Invalid User)** | `nano brute_test.sh`<br>`chmod +x brute_test.sh`<br>`./brute_test.sh` | `screenshots/Fig 37.png` | Scripted 10 failed SSH login attempts against a **non-existent** user (`fakeuser`) from Manager (10.0.2.12) to Victim (10.0.2.14). |
+| **9. Verify Failures Logged Locally** | `sudo grep "Failed password" /var/log/auth.log \| tail -10` | `screenshots/Fig 38.png` | Confirmed 10 fresh `Failed password for invalid user fakeuser` entries on the Victim, proving attack traffic reached `sshd`. |
+| **10. Confirm Rule 5710 Fired** | `sudo grep -i "sshd" /var/ossec/logs/alerts/alerts.log` | `screenshots/Fig 39.png` | Confirmed **Rule 5710** (level 5) — *"sshd: Attempt to login using a non-existent user"* — fired for each attempt, natively mapped to **MITRE ATT&CK T1110.001**. |
+| **11. Run Second Test (Valid User)** | `nano brute_test2.sh` *(target changed to real user `socanalyst`)*<br>`./brute_test2.sh` | — | Repeated the attack against a **valid** existing account with wrong passwords, to trigger Wazuh's separate "known user, wrong password" detection path. |
+| **12. Confirm Rule 5760 & Escalation to 5551** | `sudo grep -i "sshd" /var/ossec/logs/alerts/alerts.log \| tail -40` | `screenshots/Fig 40.png` | Confirmed **Rule 5760** (level 5) — *"sshd: authentication failed"* — and critically, **Rule 5551** (level 10) — *"PAM: Multiple failed logins in a small period of time"* — the frequency-correlated brute-force escalation rule. |
+| **13. Verify Full Detection Chain in Dashboard** | *(Dashboard)* **Threat Hunting → Events** → Search: `sshd` | `screenshots/Fig 41.png` | Final verification: **133 hits** across Rules 5710, 5760, 5503, and 5551, all correctly attributed to `srcip: 10.0.2.12` → `agent.name: ubuntu-victim`. |
+
+**🔧 Infrastructure Note (documented incident):** During this phase, `wazuh-indexer` was OOM-killed due to 8GB host RAM constraints. Diagnosed via `systemctl status wazuh-indexer` (`Result: oom-kill`), resolved by restarting the service and subsequently **tuning the JVM heap** (`-Xms`/`-Xmx` from `1487m` → `768m` in `/etc/wazuh-indexer/jvm.options`), improving available VM memory from **40Mi → 731Mi**.
+
+---
+
+### 📊 Detection Rule Reference Table
+
+| Rule ID | Level | Description | Trigger Condition | MITRE ATT&CK |
+|---|---|---|---|---|
+| 5710 | 5 | sshd: Attempt to login using a non-existent user | Login attempt, invalid/unknown username | T1110.001, T1021.004 |
+| 5760 | 5 | sshd: authentication failed | Login attempt, valid username, wrong password | T1110.001 |
+| 5503 | 5 | PAM: User login failed | PAM-layer correlation of above | — |
+| **5551** | **10** | **PAM: Multiple failed logins in a small period of time** | **Frequency-correlated brute-force escalation** | T1110 |
+
+---
+
+*Note: Replace screenshot filenames/numbers above with your actual captured images before committing. Maintain consistent numbering with your existing Phase 0 (Snort Integration) table for a continuous Fig sequence across your full README.*
