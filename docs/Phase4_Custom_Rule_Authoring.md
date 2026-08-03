@@ -5,6 +5,14 @@ A step-by-step record of writing, troubleshooting, and validating three custom W
 
 ---
 
+## 🗺️ Architecture Diagram
+
+<p align="center">
+  <img src="../diagrams/phase4_architecture.png" alt="Architecture Diagram" width="100%">
+</p>
+
+---
+
 ### 🔷 PHASE 4 — Custom Wazuh Rules
 | Step | Command(s) Used | Screenshot | Description |
 |---|---|---|---|
