@@ -5,6 +5,14 @@ A step-by-step record of configuring and validating Wazuh's built-in FIM (`sysch
 
 ---
 
+## 🗺️ Architecture Diagram
+
+<p align="center">
+  <img src="../diagrams/phase3_architecture.png" alt="Architecture Diagram" width="100%">
+</p>
+
+---
+
 ### 🔷 PHASE 3 — File Integrity Monitoring
 
 | Step | Command(s) Used | Screenshot | Description |
