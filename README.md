@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🛡️ Wazuh–Snort SOC Lab
-### SIEM Detection · SOAR-Style Response · File Integrity Monitoring
+### SOAR-Style Response · SIEM Detection · File Integrity Monitoring
 
 *A five-phase, hands-on SOC engineering project — from raw network intrusion detection to custom-authored SIEM correlation rules — built entirely in a self-hosted virtual lab.*
 
@@ -15,7 +15,7 @@
 ![OpenSearch](https://img.shields.io/badge/OpenSearch-Indexer-005EB8?style=for-the-badge&logo=opensearch&logoColor=white)
 
 ![Status](https://img.shields.io/badge/Status-Completed-2ea44f?style=for-the-badge)
-![Phases](https://img.shields.io/badge/Phases-5-blueviolet?style=for-the-badge)
+![Phases](https://img.shields.io/badge/Phases-5%20Completed%20%2B%201%20Planned-blueviolet?style=for-the-badge)
 ![Purpose](https://img.shields.io/badge/Purpose-Educational-orange?style=for-the-badge)
 
 </div>
@@ -79,7 +79,15 @@ Each phase builds directly on the last — same lab, same agent, same Manager �
 <td>Writing & debugging SIEM correlation rules</td>
 <td align="center"><a href="docs/Phase4_Custom_Rule_Authoring.md"><b>View →</b></a></td>
 </tr>
+<tr>
+<td align="center"><b>5</b></td>
+<td>🔗 <b>Workflow Automation</b> <sub>(Planned)</sub><br><sub>n8n-Orchestrated Incident Response</sub></td>
+<td>SOAR orchestration layer</td>
+<td align="center"><sub><i>Coming soon</i></sub></td>
+</tr>
 </table>
+
+> 🔜 **Phase 5 (Planned):** Add [n8n](https://n8n.io) as a workflow automation layer on top of the existing Wazuh pipeline — consuming Wazuh alerts via webhook, automating investigation steps (IP enrichment, threat intel lookups), and orchestrating incident response actions across tools. This is the piece that would move this project from "SOAR-style response" (single-tool automated remediation) toward genuine SOAR orchestration (cross-tool workflows).
 
 ---
 
