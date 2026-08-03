@@ -25,7 +25,7 @@
 ## 🗺️ Architecture Diagram
 
 <p align="center">
-  <img src="diagrams/phase0_architecture.png" alt="Architecture Diagram" width="100%"/>
+  <img src="../diagrams/phase0_architecture.png" alt="Architecture Diagram" width="100%">
 </p>
 
 ---
