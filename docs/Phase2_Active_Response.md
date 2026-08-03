@@ -5,6 +5,14 @@ A step-by-step record of implementing automated threat containment, building on 
 
 ---
 
+## 🗺️ Architecture Diagram
+
+<p align="center">
+  <img src="../diagrams/phase2_architecture.png" alt="Architecture Diagram" width="100%">
+</p>
+
+---
+
 ### 🔷 PHASE 2 — Active Response (Automated IP Blocking)
 
 | Step | Command(s) Used | Screenshot | Description |
