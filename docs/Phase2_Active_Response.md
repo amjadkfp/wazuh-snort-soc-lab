@@ -1,7 +1,23 @@
----
-## Phase 2 Active Response (Automated IP Blocking)
+<div align="center">
 
-A step-by-step record of implementing automated threat containment, building on the SSH brute-force detection rules established in Phase 1.
+# Phase2 Active Response (Automated IP Blocking)
+### SOAR-Style Automated Threat Containment
+
+*A step-by-step record of implementing automated threat containment, building on the SSH brute-force detection rules established in Phase 1.*
+
+---
+
+![Wazuh](https://img.shields.io/badge/Wazuh-SIEM-1565C0?style=for-the-badge&logo=wazuh&logoColor=white)
+![Active Response](https://img.shields.io/badge/Active_Response-Automation-CC0000?style=for-the-badge&logoColor=white)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-Server-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
+![UFW](https://img.shields.io/badge/UFW-Firewall-557C94?style=for-the-badge&logoColor=white)
+![VirtualBox](https://img.shields.io/badge/VirtualBox-Lab-183A61?style=for-the-badge&logo=virtualbox&logoColor=white)
+
+![Status](https://img.shields.io/badge/Status-Completed-2ea44f?style=for-the-badge)
+![Type](https://img.shields.io/badge/Type-SOC%20Lab-blueviolet?style=for-the-badge)
+![Purpose](https://img.shields.io/badge/Purpose-Educational-orange?style=for-the-badge)
+
+</div>
 
 ---
 
@@ -26,6 +42,7 @@ A step-by-step record of implementing automated threat containment, building on 
 | **7. Confirm Dispatch Trace on Manager** | `sudo grep -i "active-response\|firewall-drop" /var/ossec/logs/ossec.log` | [![Fig 7](../screenshots/phase2/Fig7.png)](../screenshots/phase2/Fig7.png) | Verified the Manager's JSON dispatch trace: alert → `add` command → Agent `firewall-drop` execution → `check_keys` → `continue` → `Ended`. |
 | **8. Verify Auto-Unblock Lifecycle** | *(Dashboard)* **Threat Hunting → Events** → Search: `active-response` | [![Fig 8](../screenshots/phase2/Fig8.png)](../screenshots/phase2/Fig8.png) | Confirmed **Rule 652** — *"Host Unblocked by firewall-drop Active Response"* (level 3) — fired after the timeout window, proving the full add-block-unblock lifecycle completed and was independently logged. |
 | **9. Final Dashboard Summary** | *(Dashboard)* **Threat Hunting → Dashboard** *(no filter, Last 24 hours)* | [![Fig 9](../screenshots/phase2/Fig9.png)](../screenshots/phase2/Fig9.png) | Full-picture view: 1,378 total events, 34 authentication failures, 441 successes, MITRE ATT&CK breakdown showing Valid Accounts, Password Guessing, Brute Force, SSH, and Network Sniffing techniques covered across testing. |
+
 ---
 
 ### 📊 Detection Rule Reference Table
@@ -37,3 +54,11 @@ A step-by-step record of implementing automated threat containment, building on 
 ---
 
 *Note: Replace screenshot filenames/numbers above with your actual captured images before committing. This continues the Fig sequence from Phase 1 (Fig 31–41); Phase 2 begins at Fig 42.*
+
+---
+
+<div align="center">
+
+*Built with 🔐 for learning — by a future SOC analyst.*
+
+</div>
