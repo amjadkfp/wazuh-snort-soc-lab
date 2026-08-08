@@ -1,5 +1,5 @@
 ---
-## 📸 Phase 3 Procedure & Screenshots — File Integrity Monitoring (FIM)
+## Phase 3 — File Integrity Monitoring (FIM)
 
 A step-by-step record of configuring and validating Wazuh's built-in FIM (`syscheck`) module to monitor critical directories on the Ubuntu-Victim host, building on the SSH detection (Phase 1) and Active Response (Phase 2) capabilities already in place.
 
