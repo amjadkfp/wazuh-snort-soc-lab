@@ -1,5 +1,5 @@
 ---
-## 📸 Phase 1 Procedure & Screenshots — SSH Brute Force Detection
+## Phase 1 SSH Brute Force Detection
 
 A step-by-step record of implementing host-based SSH brute-force detection, building on the existing Snort NIDS integration (Phase 0).
 
