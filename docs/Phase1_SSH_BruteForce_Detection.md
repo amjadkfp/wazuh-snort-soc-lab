@@ -1,7 +1,23 @@
----
-## Phase 1 SSH Brute Force Detection
+<div align="center">
 
-A step-by-step record of implementing host-based SSH brute-force detection, building on the existing Snort NIDS integration (Phase 0).
+# Phase1 SSH Brute Force Detection
+### Host-Based Intrusion Detection via Authentication Log Correlation
+
+*A step-by-step record of implementing host-based SSH brute-force detection, building on the existing Snort NIDS integration (Phase 0).*
+
+---
+
+![Wazuh](https://img.shields.io/badge/Wazuh-SIEM-1565C0?style=for-the-badge&logo=wazuh&logoColor=white)
+![SSH](https://img.shields.io/badge/SSH-Brute--Force-CC0000?style=for-the-badge&logo=openssh&logoColor=white)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-Server-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
+![PAM](https://img.shields.io/badge/PAM-Correlation-557C94?style=for-the-badge&logoColor=white)
+![VirtualBox](https://img.shields.io/badge/VirtualBox-Lab-183A61?style=for-the-badge&logo=virtualbox&logoColor=white)
+
+![Status](https://img.shields.io/badge/Status-Completed-2ea44f?style=for-the-badge)
+![Type](https://img.shields.io/badge/Type-SOC%20Lab-blueviolet?style=for-the-badge)
+![Purpose](https://img.shields.io/badge/Purpose-Educational-orange?style=for-the-badge)
+
+</div>
 
 ---
 
@@ -47,3 +63,11 @@ A step-by-step record of implementing host-based SSH brute-force detection, buil
 ---
 
 *Note: Replace screenshot filenames/numbers above with your actual captured images before committing. Maintain consistent numbering with your existing Phase 0 (Snort Integration) table for a continuous Fig sequence across your full README.*
+
+---
+
+<div align="center">
+
+*Built with 🔐 for learning — by a future SOC analyst.*
+
+</div>
