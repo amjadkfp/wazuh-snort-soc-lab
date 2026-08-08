@@ -1,5 +1,5 @@
 ---
-## 📸 Phase 2 Procedure & Screenshots — Active Response (Automated IP Blocking)
+## Phase 2 Active Response (Automated IP Blocking)
 
 A step-by-step record of implementing automated threat containment, building on the SSH brute-force detection rules established in Phase 1.
 
