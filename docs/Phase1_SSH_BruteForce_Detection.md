@@ -62,10 +62,6 @@
 
 ---
 
-*Note: Replace screenshot filenames/numbers above with your actual captured images before committing. Maintain consistent numbering with your existing Phase 0 (Snort Integration) table for a continuous Fig sequence across your full README.*
-
----
-
 <div align="center">
 
 *Built with 🔐 for learning — by a future SOC analyst.*
