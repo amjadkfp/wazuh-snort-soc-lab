@@ -179,47 +179,6 @@ This project hit (and resolved) several genuine real-world issues — documented
 
 ---
 
-## 📁 Repository Structure
-
-```
-.
-├── 📄 README.md
-├── 📂 docs/
-│   └── Wazuh_Snort_Integration_Report.pdf   # Full project report
-├── 📂 config/
-│   ├── ossec.conf.snippet                    # Redacted localfile config (no keys/secrets)
-│   └── snort.conf.snippet                    # Redacted sfportscan config
-├── 📂 screenshots/                           # Evidence trail, Fig. 1–10
-└── 📂 diagrams/
-    └── architecture_diagram.png
-```
-
-> ⚠️ Configuration files in `config/` are **redacted snippets** for demonstration only. Real deployment files (`client.keys`, full `ossec.conf`) containing authentication secrets are intentionally excluded — see `.gitignore`.
-
----
-
-## 🛠️ Tools & Technologies
-
-<div align="center">
-
-![Wazuh](https://img.shields.io/badge/Wazuh-1565C0?style=flat-square&logo=wazuh&logoColor=white)
-![Snort](https://img.shields.io/badge/Snort-CC0000?style=flat-square&logoColor=white)
-![VirtualBox](https://img.shields.io/badge/VirtualBox-183A61?style=flat-square&logo=virtualbox&logoColor=white)
-![Ubuntu](https://img.shields.io/badge/Ubuntu_Server-E95420?style=flat-square&logo=ubuntu&logoColor=white)
-![Kali Linux](https://img.shields.io/badge/Kali_Linux-557C94?style=flat-square&logo=kalilinux&logoColor=white)
-![OpenSearch](https://img.shields.io/badge/OpenSearch-005EB8?style=flat-square&logo=opensearch&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux_CLI-FCC624?style=flat-square&logo=linux&logoColor=black)
-![Nmap](https://img.shields.io/badge/Nmap-4B0082?style=flat-square&logoColor=white)
-
-</div>
-
----
-
-## 📜 License
-
-> This project is for educational purposes as part of a SOC / cybersecurity coursework lab.
-
----
 
 <div align="center">
 
