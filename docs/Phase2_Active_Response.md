@@ -1,6 +1,6 @@
 <div align="center">
 
-# Phase2 Active Response (Automated IP Blocking)
+# Phase 2 - Active Response (Automated IP Blocking)
 ### SOAR-Style Automated Threat Containment
 
 *A step-by-step record of implementing automated threat containment, building on the SSH brute-force detection rules established in Phase 1.*
@@ -50,10 +50,6 @@
 | Rule ID | Level | Description | Trigger Condition | MITRE ATT&CK |
 |---|---|---|---|---|
 | 652 | 3 | Host Unblocked by firewall-drop Active Response | Active-response timeout expiry / auto-unblock | — |
-
----
-
-*Note: Replace screenshot filenames/numbers above with your actual captured images before committing. This continues the Fig sequence from Phase 1 (Fig 31–41); Phase 2 begins at Fig 42.*
 
 ---
 
