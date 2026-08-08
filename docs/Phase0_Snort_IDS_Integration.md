@@ -1,6 +1,6 @@
 <div align="center">
 
-# Phase0 Snort IDS Integration
+# Phase 0 - Snort IDS Integration
 ### Centralized Intrusion Detection and Monitoring
 
 *A hands-on SOC lab project integrating **Snort** (open-source network IDS) with **Wazuh** (open-source SIEM) to build a centralized threat detection and monitoring pipeline, entirely in a self-hosted virtual lab.*
