@@ -1,7 +1,23 @@
----
-## 📸 Phase 4 Procedure & Screenshots — Custom Wazuh Rules
+<div align="center">
 
-A step-by-step record of writing, troubleshooting, and validating three custom Wazuh detection rules, extending the platform's default ruleset with detection logic authored specifically for this lab.
+# Phase 4 - Custom Wazuh Rules
+### Custom Detection Engineering — SIEM Correlation Rule Authoring
+
+*A step-by-step record of writing, troubleshooting, and validating three custom Wazuh detection rules, extending the platform's default ruleset with detection logic authored specifically for this lab.*
+
+---
+
+![Wazuh](https://img.shields.io/badge/Wazuh-SIEM-1565C0?style=for-the-badge&logo=wazuh&logoColor=white)
+![XML](https://img.shields.io/badge/XML-Rule_Authoring-CC0000?style=for-the-badge&logo=xml&logoColor=white)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-Server-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
+![MITRE](https://img.shields.io/badge/MITRE-ATT%26CK-557C94?style=for-the-badge&logoColor=white)
+![VirtualBox](https://img.shields.io/badge/VirtualBox-Lab-183A61?style=for-the-badge&logo=virtualbox&logoColor=white)
+
+![Status](https://img.shields.io/badge/Status-Completed-2ea44f?style=for-the-badge)
+![Type](https://img.shields.io/badge/Type-SOC%20Lab-blueviolet?style=for-the-badge)
+![Purpose](https://img.shields.io/badge/Purpose-Educational-orange?style=for-the-badge)
+
+</div>
 
 ---
 
@@ -107,4 +123,8 @@ The dedicated Kali attacker VM was unavailable at test time due to host resource
 
 ---
 
-*Phase 4 complete — all three custom rules authored, XML-validated, restart-tested, trigger-tested, and confirmed via both CLI (`alerts.log`) and Wazuh Dashboard (Events table, Rules Manager, and Summary Dashboard). This continues the Fig sequence from Phase 3 (Fig 51–59); Phase 4 spans Fig 60–74. Replace screenshot filenames above with your actual captured images before final submission.*
+<div align="center">
+
+*Built with 🔐 for learning — by a future SOC analyst.*
+
+</div>
