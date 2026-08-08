@@ -1,7 +1,23 @@
----
-## Phase 3 — File Integrity Monitoring (FIM)
+<div align="center">
 
-A step-by-step record of configuring and validating Wazuh's built-in FIM (`syscheck`) module to monitor critical directories on the Ubuntu-Victim host, building on the SSH detection (Phase 1) and Active Response (Phase 2) capabilities already in place.
+# Phase 3 - File Integrity Monitoring (FIM)
+### Endpoint Integrity Assurance via Real-Time Hash-Diff Verification
+
+*A step-by-step record of configuring and validating Wazuh's built-in FIM (`syscheck`) module to monitor critical directories on the Ubuntu-Victim host, building on the SSH detection (Phase 1) and Active Response (Phase 2) capabilities already in place.*
+
+---
+
+![Wazuh](https://img.shields.io/badge/Wazuh-SIEM-1565C0?style=for-the-badge&logo=wazuh&logoColor=white)
+![FIM](https://img.shields.io/badge/FIM-Syscheck-CC0000?style=for-the-badge&logoColor=white)
+![Ubuntu](https://img.shields.io/badge/Ubuntu-Server-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
+![inotify](https://img.shields.io/badge/inotify-Realtime-557C94?style=for-the-badge&logoColor=white)
+![VirtualBox](https://img.shields.io/badge/VirtualBox-Lab-183A61?style=for-the-badge&logo=virtualbox&logoColor=white)
+
+![Status](https://img.shields.io/badge/Status-Completed-2ea44f?style=for-the-badge)
+![Type](https://img.shields.io/badge/Type-SOC%20Lab-blueviolet?style=for-the-badge)
+![Purpose](https://img.shields.io/badge/Purpose-Educational-orange?style=for-the-badge)
+
+</div>
 
 ---
 
@@ -30,6 +46,7 @@ A step-by-step record of configuring and validating Wazuh's built-in FIM (`sysch
 | **11. Capture Full Alert Detail — File Deleted** | `sudo grep -B2 -A 20 "syscheck_entry_deleted" /var/ossec/logs/alerts/alerts.log` | [![Fig 11](../screenshots/phase3/Fig11.png)](../screenshots/phase3/Fig11.png) | Captured **Rule 553 (Level 7)** — *"File deleted"* — confirming the alert retained the file's last known hash state as forensic evidence even after removal. |
 | **12. Verify in Dashboard — Summary View** | *(Dashboard)* **Threat Hunting → Dashboard** → Search: `syscheck` | [![Fig 12](../screenshots/phase3/Fig12.png)](../screenshots/phase3/Fig12.png) | Confirmed 6 total hits with a MITRE ATT&CK breakdown correctly categorizing the activity under **File Deletion**, **Data Destruction**, **Stored Data Manipulation**, and **Sudo and Sudo Caching**. |
 | **13. Verify in Dashboard — Event Timeline** | *(Dashboard)* **Threat Hunting → Events** → Search: `syscheck` | [![Fig 13](../screenshots/phase3/Fig13.png)](../screenshots/phase3/Fig13.png) | Final verification: clean chronological event list showing all three FIM alerts (Rules 554, 550, 553) correctly attributed to `agent.name: ubuntu-victim`, confirming the full detection pipeline from filesystem change to Dashboard visualization. |
+
 ---
 
 ### 📊 FIM Rule Reference Table
@@ -66,4 +83,8 @@ A step-by-step record of configuring and validating Wazuh's built-in FIM (`sysch
 
 ---
 
-*Note: Replace screenshot filenames/numbers above with your actual captured images before committing. This continues the Fig sequence from Phase 1/2 (Fig 31–50); Phase 3 begins at Fig 51.*
+<div align="center">
+
+*Built with 🔐 for learning — by a future SOC analyst.*
+
+</div>
