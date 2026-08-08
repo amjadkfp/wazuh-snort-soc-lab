@@ -1,6 +1,6 @@
 <div align="center">
 
-# Phase1 SSH Brute Force Detection
+# Phase 1 - SSH Brute Force Detection
 ### Host-Based Intrusion Detection via Authentication Log Correlation
 
 *A step-by-step record of implementing host-based SSH brute-force detection, building on the existing Snort NIDS integration (Phase 0).*
