@@ -3,7 +3,7 @@
 # 🛡️ Wazuh–Snort SOC Lab
 ### SOAR-Style Response · SIEM Detection · File Integrity Monitoring
 
-*A five-phase, hands-on SOC engineering project — from raw network intrusion detection to custom-authored SIEM correlation rules — built entirely in a self-hosted virtual lab.*
+*A six-phase, hands-on SOC engineering project — from raw network intrusion detection to custom-authored SIEM correlation rules and formal alert tuning — built entirely in a self-hosted virtual lab.*
 
 ---
 
@@ -37,7 +37,7 @@
 
 ```
 Attack / Log Event → Detection (Snort + Wazuh Rules) → Correlation (Wazuh Manager)
-      → Response (Active Response) → Visualization (Wazuh Dashboard)
+      → Response (Active Response) → Visualization (Wazuh Dashboard) → Tuning & Validation
 ```
 
 </div>
@@ -46,7 +46,7 @@ Attack / Log Event → Detection (Snort + Wazuh Rules) → Correlation (Wazuh Ma
 
 ## 📚 Project Phases
 
-Each phase builds directly on the last — same lab, same agent, same Manager — progressively layering detection, response, integrity monitoring, and custom engineering on top of one shared SOC pipeline.
+Each phase builds directly on the last — same lab, same agent, same Manager — progressively layering detection, response, integrity monitoring, custom engineering, and formal tuning on top of one shared SOC pipeline.
 
 <table>
 <tr>
@@ -81,13 +81,12 @@ Each phase builds directly on the last — same lab, same agent, same Manager �
 </tr>
 <tr>
 <td align="center"><b>5</b></td>
-<td>🔗 <b>Workflow Automation</b> <sub>(Planned)</sub><br><sub>n8n-Orchestrated Incident Response</sub></td>
-<td>SOAR orchestration layer</td>
-<td align="center"><sub><i>Coming soon</i></sub></td>
+<td>🎯 <b>Alert Tuning & False Positive Reduction</b><br><sub>Detection Engineering — Reducing Alert Fatigue</sub></td>
+<td>Baselining, classification, rule-level tuning, regression testing</td>
+<td align="center"><a href="docs/Phase5_Alert_Tuning_False_Positive_Reduction.md"><b>View →</b></a></td>
 </tr>
+<tr>
 </table>
-
-> 🔜 **Phase 5 (Planned):** Add [n8n](https://n8n.io) as a workflow automation layer on top of the existing Wazuh pipeline — consuming Wazuh alerts via webhook, automating investigation steps (IP enrichment, threat intel lookups), and orchestrating incident response actions across tools. This is the piece that would move this project from "SOAR-style response" (single-tool automated remediation) toward genuine SOAR orchestration (cross-tool workflows).
 
 ---
 
@@ -109,7 +108,7 @@ All VMs run in Oracle VirtualBox on a shared NAT Network (`10.0.2.0/24`). Where 
 
 ## 🔧 Notable Troubleshooting
 
-Real SOC engineering rarely works on the first attempt. These are the debugging stories that best demonstrate hands-on problem-solving across the five phases — full detail lives in each phase's doc.
+Real SOC engineering rarely works on the first attempt. These are the debugging stories that best demonstrate hands-on problem-solving across all six phases — full detail lives in each phase's doc.
 
 <details>
 <summary><b>🔑 GPG keyring import failure — single-character typo</b></summary>
@@ -159,6 +158,22 @@ Real SOC engineering rarely works on the first attempt. These are the debugging 
 
 </details>
 
+<details>
+<summary><b>🚫 Active Response self-lockout during Phase 5 troubleshooting</b></summary>
+<br>
+
+> While diagnosing an unrelated SSH configuration issue, repeated invalid-username login attempts from the Wazuh Manager's own IP triggered rule `5710`, and Phase 2's `firewall-drop` Active Response auto-blocked the Manager itself. Resolved by manually clearing the `iptables` rule on the Victim. A genuine SOC finding: aggressive automated response can create administrative friction against trusted infrastructure — full writeup in the Phase 5 doc.
+
+</details>
+
+<details>
+<summary><b>📉 Tuned rule matched but never appeared in the Dashboard (Phase 5)</b></summary>
+<br>
+
+> A new tuning rule set to `level="2"` matched correctly but never showed up in Discover. Root cause: Wazuh's default `<log_alert_level>3</log_alert_level>` silently drops any rule below level 3 from being indexed at all, regardless of whether it matched. Resolved by raising the rule to `level="3"`.
+
+</details>
+
 ---
 
 ## 🚨 SOC-Style Alert Reference (sample)
@@ -176,7 +191,7 @@ Real SOC engineering rarely works on the first attempt. These are the debugging 
 
 </div>
 
-> Full SOC analysis tables (Alert Name, Severity, Source/Destination, MITRE ATT&CK, Impact, Recommended Action) for every detection across all five phases are documented in each phase's `docs/` file.
+> Full SOC analysis tables (Alert Name, Severity, Source/Destination, MITRE ATT&CK, Impact, Recommended Action) for every detection across all six phases are documented in each phase's `docs/` file.
 
 ---
 
@@ -192,6 +207,7 @@ wazuh-snort-soc-lab/
 │   ├── Phase2_Active_Response.md
 │   ├── Phase3_File_Integrity_Monitoring.md
 │   ├── Phase4_Custom_Rule_Authoring.md
+│   ├── Phase5_Alert_Tuning_False_Positive_Reduction.md
 │   └── Final_Report.pdf                ← Consolidated writeup
 │
 ├── 📂 diagrams/
@@ -200,14 +216,16 @@ wazuh-snort-soc-lab/
 │   ├── phase1_architecture.png
 │   ├── phase2_architecture.png
 │   ├── phase3_architecture.png
-│   └── phase4_architecture.png
+│   ├── phase4_architecture.png
+│   └── phase5_architecture.png
 │
 ├── 📂 screenshots/
 │   ├── phase0/
 │   ├── phase1/
 │   ├── phase2/
 │   ├── phase3/
-│   └── phase4/
+│   ├── phase4/
+│   └── phase5/
 │
 ├── 📂 config/
 │   ├── local_rules.xml                 # Redacted — no secrets
@@ -247,6 +265,6 @@ wazuh-snort-soc-lab/
 
 <div align="center">
 
-*Built with 🔐 for learning — five phases, one SOC pipeline, zero shortcuts.*
+*Built with 🔐 for learning — six phases, one SOC pipeline, zero shortcuts.*
 
 </div>
