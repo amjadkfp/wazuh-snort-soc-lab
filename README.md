@@ -86,7 +86,14 @@ Each phase builds directly on the last — same lab, same agent, same Manager �
 <td align="center"><a href="docs/Phase5_Alert_Tuning_False_Positive_Reduction.md"><b>View →</b></a></td>
 </tr>
 <tr>
+<td align="center"><b>6</b></td>
+<td>🔗 <b>Workflow Automation</b> <sub>(Planned)</sub><br><sub>n8n-Orchestrated Incident Response</sub></td>
+<td>SOAR orchestration layer</td>
+<td align="center"><sub><i>Coming soon</i></sub></td>
+</tr>
 </table>
+
+> 🔜 **Phase 6 (Planned):** Add [n8n](https://n8n.io) as a workflow automation layer on top of the existing, now-tuned Wazuh pipeline — consuming Wazuh alerts via webhook, automating investigation steps (IP enrichment, threat intel lookups), and orchestrating incident response actions across tools. This is the piece that would move this project from "SOAR-style response" (single-tool automated remediation) toward genuine SOAR orchestration (cross-tool workflows).
 
 ---
 
