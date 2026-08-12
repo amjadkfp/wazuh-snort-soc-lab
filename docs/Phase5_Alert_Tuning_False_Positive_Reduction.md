@@ -91,7 +91,7 @@ Baseline was pulled from the Wazuh indexer (`wazuh-alerts-*`) via a Data Table v
 </div>
 
 <p align="center">
-  <img src="../screenshots/phase5/01_baseline_top30.png" alt="Baseline Top 30 Rule IDs" width="80%"/>
+  <img src="../screenshots/phase5/Base_line_page1.png" alt="Baseline Top 30 Rule IDs" width="80%"/>
 </p>
 
 ---
@@ -131,7 +131,7 @@ exit
 **Result:** Each login/logout cycle generated a matched pair of `5501`/`5502` events, plus one `5402` event for the sudo escalation — confirming the reproducible false-positive pattern.
 
 <p align="center">
-  <img src="../screenshots/phase5/02_fp_reproduction_discover.png" alt="False Positive Reproduction — 5501/5502/5402 Discover Results" width="85%"/>
+  <img src="../screenshots/phase5/falsepositive_reproduction_discover.png" alt="False Positive Reproduction — 5501/5502/5402 Discover Results" width="85%"/>
 </p>
 
 ---
@@ -230,8 +230,8 @@ A fresh login cycle was generated and checked in Discover:
 </div>
 
 <p align="center">
-  <img src="../screenshots/phase5/05_tuned_rule_validation.png" alt="Tuned Rule 100040/100041 Firing" width="80%"/>
-  <img src="../screenshots/phase5/06_original_rule_still_firing.png" alt="Original Rule 5501/5502 Still Firing" width="80%"/>
+  <img src="../screenshots/phase5/tuned_rule_100040_or_100041.png" alt="Tuned Rule 100040/100041 Firing" width="80%"/>
+  <img src="../screenshots/phase5/original_rule_5501_0r_5502.png" alt="Original Rule 5501/5502 Still Firing" width="80%"/>
 </p>
 
 **Result confirmed:** both the original rule and the new tuned classification fired for the same event — a distinct, filterable classification without any loss of audit-trail completeness.
@@ -253,7 +253,7 @@ done
 `rule.id: (5710 OR 5760 OR 5551 OR 100010)` returned **18 hits**, including multiple `5710` firings at the original `level="5"`, and a correlation match on the custom Phase 4 rule `100010`.
 
 <p align="center">
-  <img src="../screenshots/phase5/07_regression_test_passed.png" alt="Regression Test — 5710/100010 Firing Correctly" width="85%"/>
+  <img src="../screenshots/phase5/Regression_test_5710_or_100010.png" alt="Regression Test — 5710/100010 Firing Correctly" width="85%"/>
 </p>
 
 **Conclusion:** Phase 1 and Phase 4 detection logic fired exactly as designed, at original severity, with zero interference from the Phase 5 tuning change.
@@ -276,7 +276,7 @@ done
 </div>
 
 <p align="center">
-  <img src="../screenshots/phase5/08_before_after_comparison.png" alt="Before/After Rule Frequency Comparison" width="80%"/>
+  <img src="../screenshots/phase5/after_tuning.png" alt="Before/After Rule Frequency Comparison" width="80%"/>
 </p>
 
 **Interpretation:** This tuning cycle did not reduce the raw count of authentication events, by design — deleting them would break audit/compliance completeness. Instead, it introduced a **parallel low-noise classification layer**: analysts can filter or exclude `tuned_known_admin` from active-triage dashboards, cutting attributable admin-login noise from the analyst's attention stream, while compliance and forensic queries against the original rule IDs remain fully complete.
