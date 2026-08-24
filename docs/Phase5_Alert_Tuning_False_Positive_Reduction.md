@@ -199,7 +199,7 @@ Four standard tuning techniques were evaluated — frequency/threshold adjustmen
 ```
 
 <p align="center">
-  <img src="../screenshots/phase5/03_local_rules_xml_fix.png" alt="local_rules.xml — Tuning Fix Implemented" width="80%"/>
+  <img src="../screenshots/phase5/local_rule_xml.png" alt="local_rules.xml — Tuning Fix Implemented" width="80%"/>
 </p>
 
 **Design decisions:**
