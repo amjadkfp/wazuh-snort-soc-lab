@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ Wazuh–Snort SOC Lab
+# 🛡️ Wazuh–Snort SOC Lab: SIEM Detection, SOAR-Style Response, Custom Rule Engineering and False Positive Reduction
 ### SOAR-Style Response · SIEM Detection · File Integrity Monitoring
 
 *A six-phase, hands-on SOC engineering project — from raw network intrusion detection to custom-authored SIEM correlation rules and formal alert tuning — built entirely in a self-hosted virtual lab.*
