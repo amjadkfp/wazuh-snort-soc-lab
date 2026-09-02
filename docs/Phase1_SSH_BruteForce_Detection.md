@@ -33,7 +33,7 @@
 
 | Step | Command(s) Used | Screenshot | Description |
 |---|---|---|---|
-| **1. Confirm SSH Service on Victim** | `sudo systemctl status ssh` | [![Fig 1](../screenshots/phase1/Fig1.png)](../screenshots/phase1/Fig1.png) | Verified `sshd` was installed and actively listening on port 22 on the Ubuntu-Victim host — the log source this phase depends on. |
+| **1. Confirm SSH Service on Victim** | `sudo systemctl status ssh` | — | Verified `sshd` was installed and actively listening on port 22 on the Ubuntu-Victim host — the log source this phase depends on. |
 | **2. Confirm auth.log Is Active** | `sudo tail -n 20 /var/log/auth.log` | [![Fig 2](../screenshots/phase1/Fig2.png)](../screenshots/phase1/Fig2.png) | Confirmed `/var/log/auth.log` was actively recording session and login activity, establishing it as a valid Wazuh monitoring target. |
 | **3. Add `<localfile>` for auth.log** | `sudo nano /var/ossec/etc/ossec.conf` *(added `<localfile>` block, `log_format syslog`, location `/var/log/auth.log`)* | [![Fig 3](../screenshots/phase1/Fig3.png)](../screenshots/phase1/Fig3.png) | Configured the Wazuh Agent to monitor SSH authentication logs, placed correctly within an existing `<ossec_config>` block alongside other syslog-format entries. |
 | **4. Restart Agent & Verify Monitoring** | `sudo systemctl restart wazuh-agent`<br>`sudo grep "auth.log" /var/ossec/logs/ossec.log` | [![Fig 4](../screenshots/phase1/Fig4.png)](../screenshots/phase1/Fig4.png) | Confirmed via agent log: `wazuh-logcollector` actively analyzing `/var/log/auth.log` — the core log-ingestion point for this phase. |
