@@ -51,37 +51,37 @@ Each phase builds directly on the last — same lab, same agent, same Manager �
 <table>
 <tr>
 <td width="8%" align="center"><b>0</b></td>
-<td width="42%">🌐 <b>Centralized Threat Detection</b><br><sub>Snort IDS + Wazuh SIEM Integration</sub></td>
+<td width="42%">🌐 <b>Phase 0 - Snort IDS Integration</b><br><sub>Snort IDS + Wazuh SIEM Integration</sub></td>
 <td width="30%">Network IDS-to-SIEM pipeline</td>
 <td width="20%" align="center"><a href="docs/Phase0_Snort_IDS_Integration.md"><b>View →</b></a></td>
 </tr>
 <tr>
 <td align="center"><b>1</b></td>
-<td>🔐 <b>Host-Based Intrusion Detection</b><br><sub>SSH Brute-Force Log Analysis</sub></td>
+<td>🔐 <b>Phase 1 - SSH Brute Force Detection</b><br><sub>SSH Brute-Force Log Analysis</sub></td>
 <td>Log-based correlation rules</td>
 <td align="center"><a href="docs/Phase1_SSH_BruteForce_Detection.md"><b>View →</b></a></td>
 </tr>
 <tr>
 <td align="center"><b>2</b></td>
-<td>⚡ <b>Automated Threat Containment</b><br><sub>Wazuh Active Response</sub></td>
+<td>⚡ <b>Phase 2 - Active Response (Automated IP Blocking)</b><br><sub>Wazuh Active Response</sub></td>
 <td>SOAR-style auto-remediation</td>
 <td align="center"><a href="docs/Phase2_Active_Response.md"><b>View →</b></a></td>
 </tr>
 <tr>
 <td align="center"><b>3</b></td>
-<td>🗂️ <b>Endpoint Integrity Assurance</b><br><sub>Real-Time File Integrity Monitoring</sub></td>
+<td>🗂️ <b>Phase 3 - File Integrity Monitoring (FIM)</b><br><sub>Real-Time File Integrity Monitoring</sub></td>
 <td>FIM, hash-diff verification</td>
 <td align="center"><a href="docs/Phase3_File_Integrity_Monitoring.md"><b>View →</b></a></td>
 </tr>
 <tr>
 <td align="center"><b>4</b></td>
-<td>🧬 <b>Custom Detection Engineering</b><br><sub>Wazuh Rule Authoring</sub></td>
+<td>🧬 <b>Phase 4 - Custom Wazuh Rules</b><br><sub>Wazuh Rule Authoring</sub></td>
 <td>Writing & debugging SIEM correlation rules</td>
 <td align="center"><a href="docs/Phase4_Custom_Rule_Authoring.md"><b>View →</b></a></td>
 </tr>
 <tr>
 <td align="center"><b>5</b></td>
-<td>🎯 <b>Alert Tuning & False Positive Reduction</b><br><sub>Detection Engineering — Reducing Alert Fatigue</sub></td>
+<td>🎯 <b>Phase 5 - Alert Tuning & False Positive Reduction</b><br><sub>Detection Engineering — Reducing Alert Fatigue</sub></td>
 <td>Baselining, classification, rule-level tuning, regression testing</td>
 <td align="center"><a href="docs/Phase5_Alert_Tuning_False_Positive_Reduction.md"><b>View →</b></a></td>
 </tr>
