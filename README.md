@@ -2,19 +2,20 @@
 
 # 🛡️ Wazuh–Snort SOC Lab: SIEM Detection, SOAR-Style Response, Custom Rule Engineering and False Positive Reduction
 
-*A six-phase, hands-on SOC engineering project — from raw network intrusion detection to custom-authored SIEM correlation rules and formal alert tuning — built entirely in a self-hosted virtual lab.*
+*A six-phase, hands-on SOC engineering project — from raw network intrusion detection to custom-authored SIEM correlation rules, formal alert tuning, and a self-hosted SOAR orchestration layer — built entirely in a self-hosted virtual lab.*
 
 ---
 
 ![Wazuh](https://img.shields.io/badge/Wazuh-SIEM-1565C0?style=for-the-badge&logo=wazuh&logoColor=white)
 ![Snort](https://img.shields.io/badge/Snort-IDS-CC0000?style=for-the-badge&logo=snort&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-SOAR-EA4B71?style=for-the-badge&logo=n8n&logoColor=white)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-Server-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
 ![Kali](https://img.shields.io/badge/Kali_Linux-Attacker-557C94?style=for-the-badge&logo=kalilinux&logoColor=white)
 ![VirtualBox](https://img.shields.io/badge/VirtualBox-Lab-183A61?style=for-the-badge&logo=virtualbox&logoColor=white)
 ![OpenSearch](https://img.shields.io/badge/OpenSearch-Indexer-005EB8?style=for-the-badge&logo=opensearch&logoColor=white)
 
-![Status](https://img.shields.io/badge/Status-Completed-2ea44f?style=for-the-badge)
-![Phases](https://img.shields.io/badge/Phases-5%20Completed%20%2B%201%20Planned-blueviolet?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Phase_6_In_Progress-yellow?style=for-the-badge)
+![Phases](https://img.shields.io/badge/Phases-5%20Completed%20%2B%201%20In%20Progress-blueviolet?style=for-the-badge)
 ![Purpose](https://img.shields.io/badge/Purpose-Educational-orange?style=for-the-badge)
 
 </div>
@@ -22,7 +23,7 @@
 ---
 
 > ### ⚠️ A note on "SOAR"
-> This project is **not** a full SOAR platform. What it *does* demonstrate is the fundamental SOAR concept — **automated, detection-triggered response** — implemented using Wazuh's native Active Response module. A production SOAR would layer on cross-tool orchestration, ticketing integration, and analyst approval workflows on top of what's built here. This project is scoped and honest about that boundary — and that's deliberate.
+> This project is **not** a full SOAR platform. Phases 0–5 demonstrate the fundamental SOAR concept — **automated, detection-triggered response** — implemented using Wazuh's native Active Response module. Phase 6 extends this with a genuine cross-tool orchestration layer (n8n), consuming Wazuh alerts via webhook, enriching them, and notifying analysts in real time — moving this project further toward a real SOAR pattern while still being honest that a production SOAR would add ticketing integration, analyst approval workflows, and multi-tool case management on top of what's built here. This project is scoped and honest about that boundary — and that's deliberate.
 
 ---
 
@@ -37,6 +38,7 @@
 ```
 Attack / Log Event → Detection (Snort + Wazuh Rules) → Correlation (Wazuh Manager)
       → Response (Active Response) → Visualization (Wazuh Dashboard) → Tuning & Validation
+      → Orchestration (n8n Webhook → Enrichment → Notification)
 ```
 
 </div>
@@ -45,7 +47,7 @@ Attack / Log Event → Detection (Snort + Wazuh Rules) → Correlation (Wazuh Ma
 
 ## 📚 Project Phases
 
-Each phase builds directly on the last — same lab, same agent, same Manager — progressively layering detection, response, integrity monitoring, custom engineering, and formal tuning on top of one shared SOC pipeline.
+Each phase builds directly on the last — same lab, same agent, same Manager — progressively layering detection, response, integrity monitoring, custom engineering, formal tuning, and now automated orchestration on top of one shared SOC pipeline.
 
 <table>
 <tr>
@@ -86,13 +88,13 @@ Each phase builds directly on the last — same lab, same agent, same Manager �
 </tr>
 <tr>
 <td align="center"><b>6</b></td>
-<td>🔗 <b>Workflow Automation</b> <sub>(Planned)</sub><br><sub>n8n-Orchestrated Incident Response</sub></td>
-<td>SOAR orchestration layer</td>
-<td align="center"><sub><i>Coming soon</i></sub></td>
+<td>🔗 <b>Phase 6 - n8n SOAR Orchestration</b> <sub>(In Progress)</sub><br><sub>Webhook-Driven Alert Enrichment & Notification</sub></td>
+<td>Self-hosted workflow automation, IP enrichment, Discord alerting</td>
+<td align="center"><a href="docs/Phase6_n8n_SOAR_Orchestration.md"><b>View →</b></a></td>
 </tr>
 </table>
 
-> 🔜 **Phase 6 (Planned):** Add [n8n](https://n8n.io) as a workflow automation layer on top of the existing, now-tuned Wazuh pipeline — consuming Wazuh alerts via webhook, automating investigation steps (IP enrichment, threat intel lookups), and orchestrating incident response actions across tools. This is the piece that would move this project from "SOAR-style response" (single-tool automated remediation) toward genuine SOAR orchestration (cross-tool workflows).
+> 🔄 **Phase 6 (in progress):** [n8n](https://n8n.io) self-hosted on the existing Ubuntu-Victim VM, exposed to the internet via **Cloudflare Tunnel** (fully outbound-initiated — no inbound ports opened, no VPS, no credit card required). A working webhook → IP enrichment (ip-api.com) → message formatting → Discord notification pipeline is built and verified end-to-end with simulated alert data. Remaining: wiring Wazuh's Active Response module to trigger this webhook automatically on real rule `5710`/`100010` detections, and validating enrichment against a real public attacker IP. Full build log, architecture rationale, and troubleshooting narrative in the [Phase 6 doc](docs/Phase6_n8n_SOAR_Orchestration.md).
 
 ---
 
@@ -103,18 +105,18 @@ Each phase builds directly on the last — same lab, same agent, same Manager �
 | Machine | Role | IP Address | Key Software |
 |:---:|:---|:---:|:---|
 | 🔵 **Wazuh-Manager** | SIEM Server | `10.0.2.12` | Wazuh Manager, Dashboard, OpenSearch |
-| 🟠 **Ubuntu-Victim** | Monitored Endpoint | `10.0.2.14` | Snort IDS, Wazuh Agent |
+| 🟠 **Ubuntu-Victim** | Monitored Endpoint + SOAR Node | `10.0.2.14` | Snort IDS, Wazuh Agent, n8n, cloudflared |
 | 🟢 **Kali Linux** | Attacker Host | `variable` | Nmap, SSH brute-force tooling |
 
 </div>
 
-All VMs run in Oracle VirtualBox on a shared NAT Network (`10.0.2.0/24`). Where host resource constraints limited concurrent VM uptime, attack traffic was generated from an alternate cross-host source — documented transparently per phase rather than silently substituted.
+All VMs run in Oracle VirtualBox on a shared NAT Network (`10.0.2.0/24`). Where host resource constraints limited concurrent VM uptime, attack traffic was generated from an alternate cross-host source — documented transparently per phase rather than silently substituted. Phase 6 deliberately avoids adding a fourth VM or cloud VPS, instead co-locating n8n on the existing Ubuntu-Victim VM to respect the lab's 8GB RAM ceiling — memory impact was empirically measured and documented rather than assumed safe.
 
 ---
 
 ## 🔧 Notable Troubleshooting
 
-Real SOC engineering rarely works on the first attempt. These are the debugging stories that best demonstrate hands-on problem-solving across all six phases — full detail lives in each phase's doc.
+Real SOC engineering rarely works on the first attempt. These are the debugging stories that best demonstrate hands-on problem-solving across all phases — full detail lives in each phase's doc.
 
 <details>
 <summary><b>🔑 GPG keyring import failure — single-character typo</b></summary>
@@ -180,6 +182,22 @@ Real SOC engineering rarely works on the first attempt. These are the debugging 
 
 </details>
 
+<details>
+<summary><b>🌐 Cloudflare Tunnel hanging indefinitely — root cause was broken DHCP-assigned DNS, not carrier blocking (Phase 6)</b></summary>
+<br>
+
+> `cloudflared tunnel` passed all environment preflight checks but hung indefinitely at tunnel registration. Initially suspected mobile-carrier deep packet inspection after switching hotspots produced a more specific `dial tcp: lookup ... i/o timeout` error. Root-caused to the VM's DHCP-assigned DNS server being unreachable through VirtualBox's NAT layer — runtime `resolvectl` fixes were silently overridden by DHCP re-injection until permanently resolved via a dedicated netplan override file with `dhcp4-overrides: use-dns: false`. A lesson in peeling back layers: application symptom → protocol test → raw connectivity → DNS-specific test → persistent-vs-runtime config, rather than accepting the first plausible explanation. Full writeup in the Phase 6 doc.
+
+</details>
+
+<details>
+<summary><b>📋 Multi-line curl commands corrupted by VM console paste handling (Phase 6)</b></summary>
+<br>
+
+> Pasting multi-line `curl` commands directly into the VirtualBox console terminal repeatedly corrupted the input (dropped port numbers, missing slashes), producing misleading parser errors. Resolved by writing commands into a file via `nano` and executing as a script instead of pasting directly at the shell prompt — a reminder to verify actual received input before assuming a logic error when a correct-looking command throws a strange error.
+
+</details>
+
 ---
 
 ## 🚨 SOC-Style Alert Reference (sample)
@@ -197,7 +215,7 @@ Real SOC engineering rarely works on the first attempt. These are the debugging 
 
 </div>
 
-> Full SOC analysis tables (Alert Name, Severity, Source/Destination, MITRE ATT&CK, Impact, Recommended Action) for every detection across all six phases are documented in each phase's `docs/` file.
+> Full SOC analysis tables (Alert Name, Severity, Source/Destination, MITRE ATT&CK, Impact, Recommended Action) for every detection across all phases are documented in each phase's `docs/` file.
 
 ---
 
@@ -214,6 +232,7 @@ wazuh-snort-soc-lab/
 │   ├── Phase3_File_Integrity_Monitoring.md
 │   ├── Phase4_Custom_Rule_Authoring.md
 │   ├── Phase5_Alert_Tuning_False_Positive_Reduction.md
+│   ├── Phase6_n8n_SOAR_Orchestration.md   ← In progress
 │   └── Final_Report.pdf                ← Consolidated writeup
 │
 ├── 📂 diagrams/
@@ -231,7 +250,8 @@ wazuh-snort-soc-lab/
 │   ├── phase2/
 │   ├── phase3/
 │   ├── phase4/
-│   └── phase5/
+│   ├── phase5/
+│   └── phase6/
 │
 ├── 📂 config/
 │   ├── local_rules.xml                 # Redacted — no secrets
@@ -241,7 +261,7 @@ wazuh-snort-soc-lab/
 └── 📄 LICENSE
 ```
 
-> ⚠️ Files in `config/` are **redacted snippets** for demonstration only. Files containing authentication secrets (`client.keys`, full `ossec.conf`) are intentionally excluded — see `.gitignore`.
+> ⚠️ Files in `config/` are **redacted snippets** for demonstration only. Files containing authentication secrets (`client.keys`, full `ossec.conf`, n8n credentials, webhook secrets) are intentionally excluded — see `.gitignore`.
 
 ---
 
@@ -251,10 +271,14 @@ wazuh-snort-soc-lab/
 
 ![Wazuh](https://img.shields.io/badge/Wazuh-1565C0?style=flat-square&logo=wazuh&logoColor=white)
 ![Snort](https://img.shields.io/badge/Snort-CC0000?style=flat-square&logoColor=white)
+![n8n](https://img.shields.io/badge/n8n-EA4B71?style=flat-square&logo=n8n&logoColor=white)
+![Cloudflare](https://img.shields.io/badge/Cloudflare_Tunnel-F38020?style=flat-square&logo=cloudflare&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white)
 ![VirtualBox](https://img.shields.io/badge/VirtualBox-183A61?style=flat-square&logo=virtualbox&logoColor=white)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu_Server-E95420?style=flat-square&logo=ubuntu&logoColor=white)
 ![Kali Linux](https://img.shields.io/badge/Kali_Linux-557C94?style=flat-square&logo=kalilinux&logoColor=white)
 ![OpenSearch](https://img.shields.io/badge/OpenSearch-005EB8?style=flat-square&logo=opensearch&logoColor=white)
+![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat-square&logo=discord&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux_CLI-FCC624?style=flat-square&logo=linux&logoColor=black)
 ![Nmap](https://img.shields.io/badge/Nmap-4B0082?style=flat-square&logoColor=white)
 ![XML](https://img.shields.io/badge/XML-Rule_Authoring-F26522?style=flat-square&logo=xml&logoColor=white)
