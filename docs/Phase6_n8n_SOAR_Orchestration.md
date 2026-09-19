@@ -74,7 +74,9 @@ Given the prior OOM-kill history, every install step was memory-checked before a
   <img src="../screenshots/phase6/01_memory_baseline_free_h.png" alt="Memory baseline before n8n install" width="80%"/>
 </p>
 
-> ⚠️ **Note (added during Active Response integration):** the memory picture above reflects Ubuntu-Victim only. During live Active Response testing, the **Wazuh-Manager VM** was separately found to be under real memory pressure (see Troubleshooting below) — the two VMs' memory headroom is not symmetric, and this became a genuine testing bottleneck, not just a theoretical risk.
+> ⚠️ Note (added during Active Response integration): the memory picture above reflects Ubuntu-Victim only. During live Active Response testing, the Wazuh-Manager VM was separately found to be under real memory pressure — only 253Mi available with zero swap configured, causing intermittent SSH test failures and a misleading systemd "failed" status on restart. This was fully resolved (2GB swap added + a systemd TimeoutStartSec override), not just worked around — see Troubleshooting below. The two VMs' resource headroom is not symmetric, and this became a genuine testing bottleneck during this phase, not just a theoretical risk.
+
+> ⚠️ Second note: disk space, not just RAM, proved to be a real constraint on this same Manager VM — a 25GB root volume was found completely full (100%) mid-session, traced to 17GB of stale Vulnerability Detector cache accumulated since April. See Troubleshooting below for the full diagnosis and cleanup. Worth flagging here alongside the memory note: on a long-running, resource-constrained lab VM, disk exhaustion is just as likely as RAM exhaustion, and neither announces itself clearly — both surfaced as confusing, seemingly-unrelated secondary symptoms before their real cause was found.
 
 ---
 
