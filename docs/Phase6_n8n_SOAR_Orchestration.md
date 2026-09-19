@@ -207,6 +207,12 @@ Added a Discord node in **Webhook connection mode** (rather than Bot Token, whic
   <img src="../screenshots/phase6/07_discord_final_alert_real_geolocation_delivered.png" alt="Final Wazuh Security Alert message with real geolocation delivered to Discord channel via Production URL" width="85%"/>
 </p>
 
+**Full 4-node pipeline confirmed green end-to-end** — every node (Webhook → HTTP Request → Edit Fields → Discord) executed successfully in a single run, each showing a green checkmark and correct item count flowing through the chain:
+
+<p align="center">
+  <img src="../screenshots/phase6/05_workflow_all_nodes_green_success.png" alt="All four workflow nodes — Webhook, HTTP Request, Edit Fields, Discord — executed successfully with green checkmarks" width="85%"/>
+</p>
+
 ### Step 9 — Wazuh Active Response Integration (In Progress)
 
 With the n8n pipeline fully validated as an always-on backend service, the remaining piece is making **Wazuh itself** call the Production URL automatically — no `curl` run by hand.
