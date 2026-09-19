@@ -22,8 +22,9 @@
 
 ---
 
-> ### ⚠️ A note on "SOAR"
-> This project is **not** a full SOAR platform. Phases 0–5 demonstrate the fundamental SOAR concept — **automated, detection-triggered response** — implemented using Wazuh's native Active Response module. Phase 6 extends this with a genuine cross-tool orchestration layer (n8n), consuming Wazuh alerts via webhook, enriching them, and notifying analysts in real time — moving this project further toward a real SOAR pattern while still being honest that a production SOAR would add ticketing integration, analyst approval workflows, and multi-tool case management on top of what's built here. This project is scoped and honest about that boundary — and that's deliberate.
+⚠️ A note on "SOAR"
+
+This project is not a full SOAR platform. Phases 0–6 demonstrate the fundamental SOAR concept — automated, detection-triggered response — implemented using Wazuh's native Active Response module. Phase 6 extends this with a genuine cross-tool orchestration layer (n8n), consuming Wazuh alerts via webhook, enriching them, and notifying analysts in real time — moving this project further toward a real SOAR pattern while still being honest that a production SOAR would add ticketing integration, analyst approval workflows, and multi-tool case management on top of what's built here. This project is scoped and honest about that boundary — and that's deliberate.
 
 ---
 
@@ -94,7 +95,7 @@ Each phase builds directly on the last — same lab, same agent, same Manager �
 </tr>
 </table>
 
-> 🔄 **Phase 6 (in progress):** [n8n](https://n8n.io) self-hosted on the existing Ubuntu-Victim VM, exposed to the internet via **Cloudflare Tunnel** (fully outbound-initiated — no inbound ports opened, no VPS, no credit card required). A working webhook → IP enrichment (ip-api.com) → message formatting → Discord notification pipeline is built and verified end-to-end with simulated alert data. Remaining: wiring Wazuh's Active Response module to trigger this webhook automatically on real rule `5710`/`100010` detections, and validating enrichment against a real public attacker IP. Full build log, architecture rationale, and troubleshooting narrative in the [Phase 6 doc](docs/Phase6_n8n_SOAR_Orchestration.md).
+> 🔄 **Phase 6 (in progress):** [n8n](https://n8n.io) self-hosted on the existing Ubuntu-Victim VM, exposed to the internet via **Cloudflare Tunnel** (fully outbound-initiated — no inbound ports opened, no VPS, no credit card required).A working webhook → IP enrichment (ip-api.com) → message formatting → Discord notification pipeline is built and fully validated end-to-end, including against a real public IP. Wazuh's Active Response module has been configured to trigger this webhook on rule 5710/100010 detections and the rule itself fires correctly — but the active-response dispatch does not yet reach the script, a currently open and actively-debugged issue (debug logging enabled, root cause not yet isolated). Full build log, architecture rationale, and troubleshooting narrative in the [Phase 6 doc](docs/Phase6_n8n_SOAR_Orchestration.md).
 
 ---
 
@@ -195,6 +196,14 @@ Real SOC engineering rarely works on the first attempt. These are the debugging 
 <br>
 
 > Pasting multi-line `curl` commands directly into the VirtualBox console terminal repeatedly corrupted the input (dropped port numbers, missing slashes), producing misleading parser errors. Resolved by writing commands into a file via `nano` and executing as a script instead of pasting directly at the shell prompt — a reminder to verify actual received input before assuming a logic error when a correct-looking command throws a strange error.
+
+</details>
+
+<details>
+<summary><b>🔒 Active Response silently suppressed by the global IP whitelist, then a second self-lockout, then a full disk (Phase 6)</b></summary>
+<br>
+
+> A custom Active Response binding for rule `100010` appeared completely inert — no dispatch, no error, total silence. Root-caused through a chain of three distinct, genuinely separate issues: Wazuh's global active-response whitelist silently suppressing loopback-sourced test traffic; a second self-lockout via the existing `firewall-drop` binding on rule `5710` once testing moved cross-host (caught live via a real-time `iptables` watcher); and, discovered mid-troubleshooting, a completely full disk (100%) traced to 17GB of stale Vulnerability Detector cache accumulated since April. All three were resolved — yet the active-response dispatch itself still does not fire, even with every other prerequisite confirmed healthy. Full root-cause chain, live diagnostics, and current open status in the Phase 6 doc.
 
 </details>
 
