@@ -291,131 +291,129 @@ Full root-cause investigation and current status documented in Troubleshooting b
 
 ---
 
-## 🧰 Notable Troubleshooting (real incidents, documented in full)
+## 🔧 Build Log (continued)
+
+### Step 9.4 — Wazuh-Manager Memory Pressure Resolved (swap + systemd timeout)
+
+The Manager's `free -h` showing 253Mi available / zero swap (flagged in the original memory-pressure `<details>` block) was tracked down further and fully resolved, not just mitigated:
+
+- Added 2GB of swap (`dd` + `mkswap` + `swapon`, persisted via `/etc/fstab`)
+- Added a systemd drop-in override (`/etc/systemd/system/wazuh-manager.service.d/override.conf`, `TimeoutStartSec=300`) after discovering that `systemctl status wazuh-manager` was reporting `Active: failed (Result: timeout)` even though `wazuh-control status` showed every daemon genuinely running — systemd's default startup timeout was simply too short for a memory-constrained daemon burst, not a real crash.
+
+<p align="center">
+  <img src="../screenshots/phase6/15_swap_added_2gb_confirmed.png" alt="2GB swap added and confirmed via free -h" width="80%"/>
+  <img src="../screenshots/phase6/16_systemd_timeoutstartsec_override_active_running.png" alt="TimeoutStartSec override applied, manager restart clean and active (running)" width="80%"/>
+</p>
+
+### Step 9.5 — Cross-Host Test Re-Run: Self-Lockout Root Cause Refined
+
+With memory pressure resolved, the cross-host brute-force test was re-run. It still failed — but not for the whitelist reason originally suspected. Live-diagnosed by running `watch -n 1 'iptables -L INPUT -n --line-numbers'` on Ubuntu-Victim **during** the test (rather than checking after, which had previously missed the evidence since Active Response's default 600-second auto-unblock window had already expired by inspection time):
+
+<p align="center">
+  <img src="../screenshots/phase6/17_live_iptables_dropcatch_self_lockout_rule5710.png" alt="Live-captured DROP rule for 10.0.2.12, caught mid-test" width="80%"/>
+</p>
+
+Root cause: the Manager's `<active-response>` block from Phase 2 is still wired to fire `firewall-drop` on rules `5551`, `5710`, **and** `5760` individually. The very first failed login matched `5710` on its own and instantly self-blocked the Manager — before rule `100010`'s 5-in-60s frequency window could even be evaluated. This is a *different* mechanism than the whitelist suppression documented earlier: that was about `127.0.0.1` being ignored outright; this is about a genuinely non-whitelisted source blocking itself via an unrelated rule binding.
+
+**Fix:** temporarily added `10.0.2.12` (the Manager's own IP) to the global Active Response whitelist, specifically to suppress `firewall-drop` long enough to let rule `100010` actually fire — an intentional, reversible, documented suppression for isolating one variable, not a permanent change.
+
+<p align="center">
+  <img src="../screenshots/phase6/23_whitelist_10_0_2_12_added_validated_clean.png" alt="10.0.2.12 added to global whitelist, XML validated clean" width="80%"/>
+  <img src="../screenshots/phase6/24_manager_restart_clean_post_whitelist.png" alt="Manager restart clean after whitelist change" width="80%"/>
+</p>
+
+### Step 9.6 — Rule 100010 Confirmed Firing Cleanly (blocker isolated further)
+
+With both issues fixed, the full 6-iteration test finally ran uninterrupted. Rule `100010` fired **multiple times**, each with a complete, well-formed alert body including a correct `Src IP` field:
+
+<p align="center">
+  <img src="../screenshots/phase6/25_rule_100010_fired_multiple_times_confirmed.png" alt="Rule 100010 firing repeatedly, confirmed via alerts.log" width="80%"/>
+  <img src="../screenshots/phase6/26_alert_body_src_ip_confirmed_100010.png" alt="Full alert body for rule 100010 showing correct Src IP: 10.0.2.12" width="80%"/>
+</p>
+
+### Step 9.7 — Active Response Still Does Not Dispatch (open issue)
+
+Despite every identified prerequisite now confirmed healthy, `/tmp/wazuh-ar-debug.log` was **still never created**:
+
+<p align="center">
+  <img src="../screenshots/phase6/27_debug_log_still_missing_after_whitelist_fix.png" alt="Debug log still missing even after the whitelist fix and a clean rule 100010 firing" width="80%"/>
+</p>
+
+Systematically ruled out, in order:
+- **Whitelist suppression for this test** — `grep -i whitelist ossec.log` showed no matching entry for this test window
+- **Agent registration** — confirmed `ID: 002, Name: ubuntu-victim, IP: any, Active`
+- **Script permissions** — `n8n-notify-debug.sh` confirmed `root:wazuh`, mode `750`, identical to the working `firewall-drop` script
+- **Command/rule binding syntax** — `ossec.conf` block reviewed line-by-line, structurally correct
+- **Control comparison** — `firewall-drop` (bound to `5710`, previously proven working in Phase 2) **also** failed to dispatch during this same test window, ruling out anything specific to the new custom command and pointing instead to something systemic in the current dispatch pipeline
+
+<p align="center">
+  <img src="../screenshots/phase6/28_active_response_bin_permissions_verified.png" alt="n8n-notify-debug.sh permissions confirmed identical to firewall-drop" width="80%"/>
+  <img src="../screenshots/phase6/29_agent_control_registered_active.png" alt="Agent registration confirmed healthy via agent_control -l" width="80%"/>
+</p>
+
+`analysisd.debug=2` and `execd.debug=2` were enabled via `local_internal_options.conf` and the Manager restarted cleanly with debug logging confirmed active, ready to capture the daemons' actual internal dispatch decision on the next test run:
+
+<p align="center">
+  <img src="../screenshots/phase6/30_debug_logging_analysisd_execd_enabled.png" alt="analysisd and execd debug logging confirmed active via heartbeat log lines" width="80%"/>
+</p>
+
+**This is the confirmed, isolated, current blocker for Phase 6 completion — the live debug-logged test run itself has not yet been executed/analyzed.**
+
+---
+
+## 🧰 Additional Troubleshooting
 
 <details>
-<summary><b>⌨️ Repeated DNS typo (deb.nodesource.com → ded.nodesource.com)</b></summary>
+<summary><b>💥 Disk exhaustion (100% full) discovered mid-troubleshooting, traced to 17GB of stale Vulnerability Detector cache</b></summary>
 <br>
 
-> The NodeSource install script failed silently due to a one-character DNS typo, causing `apt-get install nodejs` to fall back to Ubuntu's stale default repo (Node 12.x) without any obvious error at the install step itself. Caught only by explicitly checking `node -v` after install rather than assuming success. Root-caused, corrected, and re-verified across two full retry cycles before the correct NodeSource repo was properly registered.
+> While backing up `ossec.conf` before the whitelist edit, `sudo cp` failed outright: `cp: cannot create regular file ... No space left on device`.
 
-</details>
+<p align="center">
+  <img src="../screenshots/phase6/18_disk_full_backup_failed.png" alt="Backup command failing due to no disk space" width="80%"/>
+  <img src="../screenshots/phase6/19_df_h_100_percent_full.png" alt="df -h confirming root filesystem at 100%" width="80%"/>
+</p>
 
-<details>
-<summary><b>🌐 Cloudflare Tunnel registration hanging indefinitely (root cause: broken DHCP-assigned DNS)</b></summary>
-<br>
+> Traced top-down: `/var` (19G) → `/var/ossec` (18G) → `/var/ossec/queue` (18G) → `/var/ossec/queue/vd` (12G, the Vulnerability Detector's raw CVE feed data) and `/var/ossec/queue/vd_updater` (5.1G, almost entirely a stale `tmp/` subdirectory left behind by interrupted hourly feed-update cycles running unattended since April, given the module's default `<feed-update-interval>60m</feed-update-interval>`).
 
-> `cloudflared tunnel` would pass all environment preflight checks (DNS resolution, TCP/UDP connectivity, Cloudflare API reachability) but then hang indefinitely at tunnel registration, even after forcing HTTP2 over QUIC. Initially suspected to be mobile-carrier deep packet inspection (a genuine and common issue on Indian mobile networks) after switching hotspots produced a *different*, more specific error: `dial tcp: lookup api.trycloudflare.com on 127.0.0.1:53: i/o timeout`.
->
-> Root-caused to the VM's DHCP-assigned DNS server (`192.168.103.185`) being unreachable through VirtualBox's NAT layer, despite general internet connectivity (`ping 1.1.1.1`) working fine. Runtime fixes via `resolvectl dns` were repeatedly and silently overridden by DHCP re-injection. Permanently resolved by identifying that `/etc/netplan/50-cloud-init.yaml` is cloud-init-managed (edits don't persist across reboot) and instead creating a separate override file `/etc/netplan/99-custom-dns.yaml` with explicit `dhcp4-overrides: use-dns: false` to fully suppress DHCP-supplied DNS in favor of `1.1.1.1`/`8.8.8.8`. A secondary file-permission issue (`600` required, initially `644`) was also caught and corrected along the way.
->
-> **Lesson:** a hung network handshake can have a root cause several layers removed from the failing tool itself — proper diagnosis required peeling back from application-layer symptom (tunnel timeout) → protocol test (QUIC vs HTTP2) → raw connectivity test → DNS-specific test → persistent-vs-runtime config distinction, rather than accepting the first plausible explanation (carrier DPI).
+<p align="center">
+  <img src="../screenshots/phase6/20_vd_feed_12g_identified.png" alt="12G Vulnerability Detector feed directory identified" width="80%"/>
+  <img src="../screenshots/phase6/21_vd_updater_tmp_5gb_stale_cache.png" alt="5.1G stale tmp cache in vd_updater" width="80%"/>
+</p>
 
-</details>
+> Given ~2,549+ of the Phase 5 baseline's ~9,900 alerts were already attributed to this same module (rules `23504`/`23505`/`23508`, classified "Benign-but-Alerting"), this tracks as a natural consequence of a long-running, unmaintained lab rather than a misconfiguration. **Fix:** disabled `<vulnerability-detection><enabled>` (not required for Phase 6 testing), confirmed via `lsof` that no process held the stale files open, then cleared `vd_updater/tmp/contents` and `vd_updater/tmp/downloads` directly — 5.1G reclaimed, disk usage dropped from **100% → 78%**.
 
-<details>
-<summary><b>🖥️ VirtualBox console keyboard-shortcut interception blocking tmux</b></summary>
-<br>
+<p align="center">
+  <img src="../screenshots/phase6/22_disk_freed_78_percent_5_6g_available.png" alt="Disk usage dropped from 100% to 78% after cleanup" width="80%"/>
+</p>
 
-> Attempted to use `tmux` to split a single terminal into two panes (to monitor `free -h` while `n8n start` ran in the foreground) for lack of a working second SSH path from the Windows host (no port-forward configured for SSH, unlike the Wazuh Dashboard's existing port-forward). `Ctrl+B` prefix commands were silently swallowed by the VirtualBox console window rather than reaching tmux, evidenced by the literal characters appearing typed at the shell prompt instead of triggering a pane split. Resolved by abandoning tmux for this use case and instead backgrounding long-running processes properly (`Ctrl+Z` → `bg` → `disown -h`) combined with `nohup ... &` for services that need to persist independent of any single terminal session.
-
-</details>
-
-<details>
-<summary><b>📋 Multi-line curl commands corrupted by VM console paste handling</b></summary>
-<br>
-
-> Multiple attempts to paste a multi-line `curl` command (using `\` line continuations) directly into the VirtualBox console terminal resulted in corrupted commands — dropped characters (notably the `5678` port number, `/` path separators, and spaces between arguments vanished from pasted content on several separate occasions), producing confusing "bad/illegal URL format," "nested brace," and "bad configuration option" errors that did not reflect any actual mistake in the command as written. Resolved by writing commands into a file via `nano` and executing as a script (`bash script.sh`) rather than pasting/typing directly at the shell prompt. **Lesson:** when a command that looks syntactically correct produces bizarre parser errors, verify the *actual* received input (`cat` the file) before assuming a logic error — the terminal's input-handling path itself was repeatedly the fault, not the command's logic. This became a recurring, load-bearing lesson throughout Phase 6, not a one-off.
-
-</details>
-
-<details>
-<summary><b>🔗 n8n test-node execution requires re-priming the full upstream chain after a session gap</b></summary>
-<br>
-
-> Returning to the workflow in a new session, the Edit Fields node's "Execute step" initially failed silently ("No output data") because n8n's per-node test cache does not automatically persist/propagate across nodes when reopening a workflow — each node in the chain (Webhook → HTTP Request → Edit Fields) needed to be re-triggered in order (re-listen + re-send test webhook, then re-execute HTTP Request, then re-execute Edit Fields) before the final node had valid upstream data to resolve its cross-node expressions against. n8n's own in-editor hint (`Tip: Execute previous nodes to use input data`) pointed directly at the fix once noticed.
-
-</details>
-
-<details>
-<summary><b>🌐 Discord webhook returning HTTP 301 on first credential attempt</b></summary>
-<br>
-
-> The first Discord Webhook credential produced `301 - ""` on execution — an unexpected redirect response where Discord's webhook API normally returns 200/204 on success. Root cause not conclusively isolated (candidates: a stray character/whitespace introduced during copy-paste from Discord's webhook URL, or a request to the legacy `discordapp.com` domain rather than the current `discord.com`), but resolved cleanly by deleting and re-creating the credential with a freshly re-copied URL, which then tested and executed successfully (`success: true`, message confirmed delivered to Discord). **Lesson:** for opaque low-level HTTP errors on a third-party webhook, re-issuing the credential from a clean copy is often faster than exhaustively diagnosing the exact byte-level cause.
-
-</details>
-
-<details>
-<summary><b>🔑 Test URL vs Production URL — the webhook only fires standalone once Published</b></summary>
-<br>
-
-> Early validation only ever used n8n's `/webhook-test/...` URL, which requires the editor's "Listen for test event" to be actively clicked — meaning the pipeline appeared to work, but only while someone was babysitting the UI. This would have been silently useless for real Wazuh integration. Root-caused by carefully distinguishing the Test URL tab from the Production URL tab on the Webhook node, and discovering this n8n version's **Publish** button (not a separate Active/Inactive toggle) is what makes the Production URL listen permanently. Confirmed fixed by firing a `curl` POST at the Production URL with zero interaction with the n8n editor and receiving a correct, fully-enriched Discord alert — proof the backend listener genuinely works standalone.
-
-</details>
-
-<details>
-<summary><b>🚫 ROOT CAUSE: Active Response silently suppressed by Wazuh's global active-response whitelist</b></summary>
-<br>
-
-> Rule `100010` confirmed firing correctly in `alerts.log` on every test, but **zero active-response dispatch ever occurred** — no execution log, no error, total silence, across multiple restart-and-retest cycles. Initially suspected a config typo, a missing `jq` dependency, or an agent/execd connectivity issue — all methodically ruled out one at a time (script manually verified working when piped test JSON directly; `wazuh-execd` confirmed alive and running on the agent; `wazuh-analysisd -t` config validation passed clean).
->
-> Root-caused via `grep -i "white" /var/ossec/logs/ossec.log` on the Manager, revealing:
-> ```
-> White listing IP: '127.0.0.1'
-> 2 IPs in the white list for active response.
-> ```
-> Wazuh's `<global><white_list>` block in `ossec.conf` — which applies globally to **every** active-response command, not just `firewall-drop` — includes `127.0.0.1`. All brute-force test traffic had been generated as a **loopback attack** (`ssh baduser@127.0.0.1` run from Ubuntu-Victim against itself), so `srcip` always matched the whitelist and Wazuh silently suppressed dispatch regardless of which rule or command was involved.
->
-> This is structurally the same lesson as Phase 0's "self-scan traffic invisible to Snort" finding, recurring at a completely different layer of the stack (active-response dispatch suppression vs. packet-capture interface visibility) — a good example of how the same underlying category of mistake (testing against yourself instead of a genuine external source) can resurface in unrelated subsystems.
->
-> **Fix in progress:** regenerate the brute-force test **cross-host** (Wazuh-Manager → Ubuntu-Victim's real IP `10.0.2.14`), matching the same substitution pattern already used in Phases 0/1/2, combined with Phase 1's documented FIPS/KexAlgorithms fix (`-o KexAlgorithms=diffie-hellman-group14-sha256`) since the Manager's SSH client is FIPS-restricted.
-
-</details>
-
-<details>
-<summary><b>💾 Wazuh-Manager memory pressure causing intermittent SSH test failures</b></summary>
-<br>
-
-> While attempting the cross-host brute-force test fix above, SSH connections began intermittently timing out mid-loop (first attempt succeeds, subsequent attempts hang and time out) — happening consistently across two separate testing sessions. Initially suspected a firewall self-lockout repeat of the incident documented in Phase 5 (`firewall-drop` auto-blocking the Manager's own IP), but `iptables -L INPUT` on Ubuntu-Victim showed no DROP rule for `10.0.2.12`, ruling that out.
->
-> `free -h` on the Wazuh-Manager revealed the real cause: only **253Mi available out of 2.9Gi total RAM, with zero swap configured** — compared to Ubuntu-Victim's healthy 645Mi available plus 2.1Gi swap as a safety buffer. This is a genuine host-level resource constraint (OpenSearch's memory footprint on the Manager, consistent with the OOM-kill pattern first documented in Phase 0) rather than a Wazuh configuration problem — reassuring in one sense, since it suggests the Active Response binding itself is likely correctly configured and simply needs a cleaner test run under less memory pressure.
->
-> **Mitigation in progress:** spacing out the brute-force loop (`sleep 2` between attempts) and bounding each SSH attempt with `-o ConnectTimeout=10` to reduce burst load on the Manager and prevent one hung connection from stalling the whole test sequence.
+> A transient `wazuh-modulesd` segfault (`in libvulnerability_scanner.so`) occurred on the first restart immediately after this cleanup — likely the module's on-disk feed state being read mid-inconsistency from the abrupt space exhaustion. A second clean restart resolved it without further intervention. **Lesson:** disk exhaustion on a long-running SOC lab can produce a wide, confusing spread of secondary symptoms that look unrelated to storage at first glance (failed backups, `nano` refusing to save, inconsistent test behavior) — `df -h` should be an early diagnostic step whenever multiple unrelated-seeming failures appear in the same session, not a last resort.
 
 </details>
 
 ---
 
-## 📌 Current Status Summary
+## 📌 Status Summary (supersedes the "Active blocker" section above)
 
-**Completed and verified — full n8n pipeline operational end-to-end, including real-IP validation:**
-- ✅ Infrastructure decision made and documented (self-hosted + Cloudflare Tunnel vs. cloud VPS)
-- ✅ Security patching applied to host VM with Snort/Wazuh Agent regression-checked pre/post
-- ✅ Node.js 20.x LTS + n8n 2.8.4 installed, memory footprint empirically validated (~200Mi)
-- ✅ Cloudflare Tunnel (Quick Tunnel mode) installed and validated end-to-end
-- ✅ Webhook trigger node built: POST, random path, Header Auth secret
-- ✅ IP enrichment node built and **validated against a real public IP** (`8.8.8.8` → genuine Ashburn, VA / Google LLC geolocation, not just the private-range placeholder test)
-- ✅ Message-formatting node (Edit Fields) — combines data across multiple upstream nodes with graceful fallback handling
-- ✅ Discord notification node — **live alert with real enrichment data delivered**
-- ✅ **Production URL confirmed genuinely backend-listening** — workflow Published, webhook fires correctly with zero n8n editor interaction
-- ✅ Custom Active Response script (`n8n-notify-debug.sh`) written, deployed with correct `root:wazuh` / `750` permissions matching Wazuh convention, and manually verified functional
-- ✅ Wazuh-Manager `ossec.conf` updated with new `<command>`/`<active-response>` blocks bound to rule `100010`, config validated, Manager restarted clean
+**Newly resolved this session:**
+- ✅ Wazuh-Manager memory pressure — genuinely fixed (2GB swap + systemd `TimeoutStartSec` override), not just worked around
+- ✅ Cross-host self-lockout — root-caused precisely to rule `5710`'s existing `firewall-drop` binding, not the whitelist itself
+- ✅ Rule `100010` confirmed firing correctly and repeatedly under clean, uninterrupted test conditions, with a well-formed alert body
+- ✅ Disk exhaustion (100% full, 17G of stale Vulnerability Detector cache) diagnosed and partially reclaimed (5G freed, module disabled)
 
-**Active blocker, root-caused, fix in progress:**
-- 🔴 Active Response dispatch not yet firing end-to-end — root cause identified as Wazuh's global active-response IP whitelist silently suppressing dispatch for loopback-sourced test traffic (`127.0.0.1`). Fix (cross-host test traffic) identified and partially executed; currently contending with a secondary, unrelated Wazuh-Manager memory-pressure issue causing intermittent SSH test interruptions.
+**Still open — this is now the sole remaining blocker:**
+- 🔴 Active Response dispatch for rule `100010` (and, as a control comparison, even the previously-working `5710`/`firewall-drop`) does not fire, despite every identified prerequisite — whitelist, agent registration, script permissions, config syntax, queue socket health — confirmed correct. `analysisd`/`execd` debug logging (level 2) is enabled and ready; the concrete next step is re-running the test with debug logging live and searching the output for `ar_`/dispatch-decision log lines to see analysisd's actual internal reasoning.
 
-**Remaining work:**
-- ⏳ Complete one clean, full cross-host Active Response trigger test now that the whitelist root cause is understood
-- ⏳ Inspect the real Wazuh stdin JSON payload structure (via the debug script) to write correct `jq` parsing paths
-- ⏳ Replace `n8n-notify-debug.sh` with the production `n8n-notify.sh` — real `jq` parsing + `curl` POST to the n8n Production URL
-- ⏳ Full live test: real Kali-generated (or cross-host) SSH brute-force → rule `100010` fires → Active Response dispatches → n8n enriches → Discord notifies, with zero manual `curl` triggering anywhere in the chain
-- ⏳ Decision + migration to a persistent Cloudflare **Named Tunnel** (stable URL, survives restarts) — deferred, Quick Tunnel sufficient for current build/test phase
-- ⏳ Final SOC-style alert reference table and before/after evidence, to be completed once the live end-to-end automated trigger is confirmed working
+**Unchanged from before:**
+- ⏳ Once dispatch is confirmed working, replace `n8n-notify-debug.sh` with the production version using the captured payload structure
+- ⏳ Full live end-to-end test with zero manual triggering anywhere in the chain
+- ⏳ Persistent Cloudflare Named Tunnel migration (deferred, non-blocking)
+- ⏳ Re-enable `vulnerability-detection` and address the remaining 12G `vd/feed` directory once Phase 6's core automation is confirmed working
 
 ---
 
 <div align="center">
 
-*Built with 🔐 for learning — Phase 6 in progress.*
+*Built with 🔐 for learning — Phase 6 in progress. Documented honestly, including what isn't solved yet.*
 
 </div>
