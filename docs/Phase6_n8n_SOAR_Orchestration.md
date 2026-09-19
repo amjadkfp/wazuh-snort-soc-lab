@@ -3,7 +3,7 @@
 # Phase 6 - n8n SOAR Orchestration Layer
 ### Workflow Automation for Wazuh Alert Enrichment & Notification
 
-*A step-by-step, in-progress record of standing up a self-hosted n8n automation layer on top of the existing Wazuh-Snort pipeline, exposing it securely to the internet without a VPS or open inbound ports, and building an authenticated webhook-driven SOAR workflow.*
+*A step-by-step, in-progress record of standing up a self-hosted n8n automation layer on top of the existing Wazuh-Snort pipeline, exposing it securely to the internet without a VPS or open inbound ports, and wiring it to Wazuh's native Active Response module for genuine automated triggering.*
 
 ---
 
@@ -23,12 +23,12 @@
 
 ## 🎯 Objective
 
-Phases 0–5 built a complete detection, response, and tuning pipeline entirely within Wazuh + Snort. Phase 6 adds a genuine **SOAR orchestration layer** on top: when a high-severity Wazuh alert fires (e.g., rule `5710`/`100010`, SSH brute-force), an outbound webhook triggers an [n8n](https://n8n.io) workflow that will:
+Phases 0–5 built a complete detection, response, and tuning pipeline entirely within Wazuh + Snort. Phase 6 adds a genuine **SOAR orchestration layer** on top: when a high-severity Wazuh alert fires (rule `5710`/`100010`, SSH brute-force), an active-response script fires a webhook that triggers an [n8n](https://n8n.io) workflow that:
 
-1. Receive and authenticate the alert payload
-2. Enrich the source IP (geolocation via `ip-api.com`)
-3. Format a readable, analyst-friendly summary
-4. Push a real-time notification to Discord
+1. Receives and authenticates the alert payload
+2. Enriches the source IP (geolocation via `ip-api.com`)
+3. Formats a readable, analyst-friendly summary
+4. Pushes a real-time notification to Discord
 
 This closes the loop from *detection* → *automated triage support* → *human notification*, the core concept behind SOAR (Security Orchestration, Automation, and Response), while staying honest about the difference between this single-tool automation and a full cross-tool SOAR platform (see README's note on scope).
 
@@ -74,6 +74,8 @@ Given the prior OOM-kill history, every install step was memory-checked before a
   <img src="../screenshots/phase6/01_memory_baseline_free_h.png" alt="Memory baseline before n8n install" width="80%"/>
 </p>
 
+> ⚠️ **Note (added during Active Response integration):** the memory picture above reflects Ubuntu-Victim only. During live Active Response testing, the **Wazuh-Manager VM** was separately found to be under real memory pressure (see Troubleshooting below) — the two VMs' memory headroom is not symmetric, and this became a genuine testing bottleneck, not just a theoretical risk.
+
 ---
 
 ## 🔧 Build Log
@@ -104,9 +106,9 @@ Version installed: **2.8.4**. Install took ~17 minutes on this VM's constrained 
 
 ### Step 4 — Cloudflare Tunnel Installation & Configuration
 
-Installed via Cloudflare's official apt repository (`pkg.cloudflare.com`), version **2026.8.3**. Runs in **Quick Tunnel** mode currently (`cloudflared tunnel --url http://localhost:5678 --protocol http2`) — no Cloudflare account required, generates a random public `*.trycloudflare.com` HTTPS URL with a fully outbound connection to Cloudflare's edge.
+Installed via Cloudflare's official apt repository (`pkg.cloudflare.com`), version **2026.8.3**. Runs in **Quick Tunnel** mode (`cloudflared tunnel --url http://localhost:5678 --protocol http2`) — no Cloudflare account required, generates a random public `*.trycloudflare.com` HTTPS URL with a fully outbound connection to Cloudflare's edge.
 
-**Known limitation (tracked, not yet resolved):** Quick Tunnel URLs are ephemeral — a new random URL is issued every time the `cloudflared` process restarts. A **Named Tunnel** (requires free Cloudflare account + a domain) is the planned upgrade path for a persistent, production-style URL. Deferred as a later task since it doesn't block current build/test work.
+**Known limitation (tracked, not yet resolved):** Quick Tunnel URLs are ephemeral — a new random URL is issued every time the `cloudflared` process restarts, requiring the service to be manually restarted each session (see Session Restart Procedure below). A **Named Tunnel** (requires free Cloudflare account + a domain) is the planned upgrade path for a persistent, production-style URL. Deferred as a later task since it doesn't block current build/test work.
 
 <p align="center">
   <img src="../screenshots/phase6/04_cloudflare_tunnel_first_success.png" alt="Cloudflare Quick Tunnel successfully registered" width="80%"/>
@@ -130,7 +132,7 @@ Configured as the workflow's entry point:
 
 | Setting | Value | Rationale |
 |---|---|---|
-| HTTP Method | `POST` | Matches how Wazuh's Active Response script will deliver alert JSON |
+| HTTP Method | `POST` | Matches how Wazuh's Active Response script delivers alert JSON |
 | Path | Random UUID (n8n auto-generated, kept as-is) | Acts as a lightweight secret in the URL — reduces discoverability |
 | Authentication | Header Auth (`X-Wazuh-Secret` + 64-char random hex secret via `openssl rand -hex 32`) | Real access control — requests without the correct header/value are rejected |
 | Respond | Immediately | Keeps the caller (Wazuh) non-blocked while downstream enrichment/notification runs |
@@ -142,14 +144,30 @@ Configured as the workflow's entry point:
   <img src="../screenshots/phase6/08_webhook_captured_test_payload_with_secret.png" alt="Webhook captured test payload including X-Wazuh-Secret header" width="85%"/>
 </p>
 
+**Critical discovery — Test URL vs Production URL:** n8n exposes two distinct webhook endpoints per node — a `/webhook-test/...` path that only listens while "Listen for test event" is actively clicked in the editor, and a `/webhook/...` **Production URL** that listens permanently once the workflow is **Published**. This n8n version (2.8.4) does not have a separate Active/Inactive toggle — clicking **Publish** is itself the activation mechanism. This distinction matters enormously for Wazuh integration: Active Response scripts cannot rely on someone having the editor open and "listening" — they need the always-on Production URL.
+
 ### Step 6 — IP Enrichment Node (HTTP Request)
 
 Added an HTTP Request node calling `ip-api.com` (free tier, no API key required) with the source IP dynamically extracted from the incoming webhook payload via the n8n expression `{{ $json.body.srcip }}`.
 
-**Verified working** — test executed against the placeholder test IP `192.168.1.100`, correctly returning `status: fail, message: private range` from ip-api.com. This is the *correct* expected result for a private/RFC 1918 test address, confirming the request mechanism itself (URL construction, expression resolution, live HTTP call) functions correctly. Full validation against a real public attacker IP is planned for the live end-to-end test phase.
+**Initial test** — executed against the placeholder test IP `192.168.1.100`, correctly returning `status: fail, message: private range` from ip-api.com — the *correct* expected result for a private/RFC 1918 test address, confirming the request mechanism itself (URL construction, expression resolution, live HTTP call) functions correctly.
 
 <p align="center">
   <img src="../screenshots/phase6/09_ip_enrichment_http_request_success.png" alt="ip-api.com enrichment request correctly resolved and executed" width="85%"/>
+</p>
+
+**✅ Real-IP validation (completed):** re-tested against a genuine public IP (`8.8.8.8`) with **zero interaction with the n8n editor UI** — the request was fired at the Production URL directly via `curl` from the terminal, proving the webhook is genuinely backend-listening rather than only working in a UI demo. Real geolocation/ISP data returned correctly:
+
+status: success
+country: United States
+region: VA
+city: Ashburn
+isp: Google LLC
+as: AS15169 Google LLC
+
+
+<p align="center">
+  <img src="../screenshots/phase6/06_n8n_webhook_production_url_confirmed.png" alt="n8n Webhook node Production URL tab confirmed" width="85%"/>
 </p>
 
 ### Step 7 — Message Formatting Node (Edit Fields / Set)
@@ -158,16 +176,16 @@ Added an Edit Fields node after the HTTP Request node to assemble a single, huma
 
 Fallback logic (`{{ $json.country || 'Unknown' }}`) was added so the message degrades gracefully to "Unknown"/"N/A" when enrichment data is unavailable (as with private/test IPs), rather than rendering broken template syntax or blank fields.
 
-**Verified working** — full message correctly resolved with live test data:
-```
+**Verified working** — full message correctly resolved with real enrichment data:
+
 🚨 Wazuh Security Alert
 Rule ID: 5710
 Description: sshd brute force test
-Source IP: 192.168.1.100
-Location: Unknown, Unknown
-ISP: N/A
+Source IP: 8.8.8.8
+Location: United States, Ashburn
+ISP: Google LLC
 ⚠️ Review and respond if necessary.
-```
+
 
 <p align="center">
   <img src="../screenshots/phase6/10_edit_fields_resolved_alert_message.png" alt="Edit Fields node fully resolved alert_message combining two upstream nodes" width="85%"/>
@@ -183,11 +201,87 @@ Added a Discord node in **Webhook connection mode** (rather than Bot Token, whic
   <img src="../screenshots/phase6/11_discord_node_execution_success.png" alt="Discord node executed successfully" width="85%"/>
 </p>
 
-**Final proof of the complete pipeline** — the actual message as it landed in Discord:
+**✅ Real-IP end-to-end proof** — fired purely at the Production URL, no editor interaction, real public-IP enrichment data landing correctly formatted in Discord:
 
 <p align="center">
-  <img src="../screenshots/phase6/12_final_discord_alert_message_delivered.png" alt="Final Wazuh Security Alert message delivered to Discord channel" width="85%"/>
+  <img src="../screenshots/phase6/07_discord_final_alert_real_geolocation_delivered.png" alt="Final Wazuh Security Alert message with real geolocation delivered to Discord channel via Production URL" width="85%"/>
 </p>
+
+### Step 9 — Wazuh Active Response Integration (In Progress)
+
+With the n8n pipeline fully validated as an always-on backend service, the remaining piece is making **Wazuh itself** call the Production URL automatically — no `curl` run by hand.
+
+**9.1 — Custom Active Response script.** Wazuh's Active Response dispatches a JSON alert payload via stdin to a script placed in `/var/ossec/active-response/bin/` on the agent, matching the exact ownership/permission convention of the built-in `firewall-drop` script from Phase 2 (`root:wazuh`, mode `750`):
+
+```bash
+sudo chown root:wazuh /var/ossec/active-response/bin/n8n-notify-debug.sh
+sudo chmod 750 /var/ossec/active-response/bin/n8n-notify-debug.sh
+```
+
+<p align="center">
+  <img src="../screenshots/phase6/08_active_response_bin_permissions_jq_installed.png" alt="jq installed, active-response bin directory permissions convention confirmed (firewall-drop, wazuh-slack, etc.)" width="85%"/>
+</p>
+
+A **diagnostic version** of the script (`n8n-notify-debug.sh`) was written first, deliberately deferring the final `jq`-based JSON parsing logic until the real Wazuh stdin payload structure could be observed directly, rather than guessing field paths:
+
+```bash
+#!/bin/bash
+echo "--- New trigger at $(date) ---" >> /tmp/wazuh-ar-debug.log
+cat >> /tmp/wazuh-ar-debug.log
+exit 0
+```
+
+Manually verified working before wiring into Wazuh at all:
+```bash
+echo '{"test":"manual invocation"}' | sudo /var/ossec/active-response/bin/n8n-notify-debug.sh
+cat /tmp/wazuh-ar-debug.log
+```
+
+<p align="center">
+  <img src="../screenshots/phase6/09_n8n_notify_debug_script_deployed_correct_perms.png" alt="n8n-notify-debug.sh deployed with correct root:wazuh 750 permissions" width="85%"/>
+</p>
+
+**9.2 — Wazuh-Manager configuration.** Following the exact pattern of Phase 2's `firewall-drop` binding (backed up first as `ossec.conf.bak-phase6`), a new `<command>` and `<active-response>` block pair was appended to the Manager's `ossec.conf`, bound to custom correlation rule `100010` (rather than the noisier raw rule `5710`) to keep the notification signal clean — one alert per confirmed brute-force pattern, not one per failed login attempt:
+
+<p align="center">
+  <img src="../screenshots/phase6/10_manager_existing_firewall_drop_active_response_block.png" alt="Located the real, working firewall-drop active-response binding on the Manager as the template to follow" width="85%"/>
+</p>
+
+```xml
+<command>
+  <name>n8n-notify</name>
+  <executable>n8n-notify-debug.sh</executable>
+  <timeout_allowed>no</timeout_allowed>
+</command>
+
+<active-response>
+  <disabled>no</disabled>
+  <command>n8n-notify</command>
+  <location>local</location>
+  <rules_id>100010</rules_id>
+</active-response>
+```
+
+Config validated clean (`wazuh-analysisd -t`, no errors) and the Manager restarted successfully with all modules up:
+
+<p align="center">
+  <img src="../screenshots/phase6/11_manager_restart_clean_no_xml_errors.png" alt="Manager restart clean, no XML parsing errors, all modules started" width="85%"/>
+  <img src="../screenshots/phase6/12_manager_restart_with_new_n8n_notify_block.png" alt="Manager config reload confirmed with new n8n-notify active-response block present" width="85%"/>
+</p>
+
+**9.3 — Live trigger test.** Rule `100010` (and its underlying `5710`) confirmed firing correctly via repeated SSH brute-force attempts:
+
+<p align="center">
+  <img src="../screenshots/phase6/13_rule_100010_and_5710_firing_confirmed.png" alt="Rule 100010 and 5710 confirmed firing in alerts.log" width="85%"/>
+</p>
+
+However — **the active-response dispatch itself never fired**, despite the rule correctly matching. `/tmp/wazuh-ar-debug.log` remained empty/nonexistent after multiple trigger attempts, and no execution trace appeared in either VM's `ossec.log`:
+
+<p align="center">
+  <img src="../screenshots/phase6/14_debug_log_missing_dispatch_never_happened.png" alt="Debug log file never created despite rule 100010 firing — dispatch silently not happening" width="85%"/>
+</p>
+
+Full root-cause investigation and current status documented in Troubleshooting below — **this is the active blocker for Phase 6 completion.**
 
 ---
 
@@ -225,7 +319,7 @@ Added a Discord node in **Webhook connection mode** (rather than Bot Token, whic
 <summary><b>📋 Multi-line curl commands corrupted by VM console paste handling</b></summary>
 <br>
 
-> Multiple attempts to paste a multi-line `curl` command (using `\` line continuations) directly into the VirtualBox console terminal resulted in corrupted commands — dropped characters (notably the `5678` port number and `/` path separator vanished from pasted URLs on two separate occasions), producing confusing "bad/illegal URL format" and "nested brace" errors that did not reflect any actual mistake in the command as written. Resolved by writing the command into a file via `nano` (which handled the same paste content correctly) and executing it as a script (`bash test_webhook.sh`) rather than pasting directly at the shell prompt. **Lesson:** when a command that looks syntactically correct produces bizarre parser errors, verify the *actual* received input (`cat` the file) before assuming a logic error — the terminal's paste path itself was the fault, not the command.
+> Multiple attempts to paste a multi-line `curl` command (using `\` line continuations) directly into the VirtualBox console terminal resulted in corrupted commands — dropped characters (notably the `5678` port number, `/` path separators, and spaces between arguments vanished from pasted content on several separate occasions), producing confusing "bad/illegal URL format," "nested brace," and "bad configuration option" errors that did not reflect any actual mistake in the command as written. Resolved by writing commands into a file via `nano` and executing as a script (`bash script.sh`) rather than pasting/typing directly at the shell prompt. **Lesson:** when a command that looks syntactically correct produces bizarre parser errors, verify the *actual* received input (`cat` the file) before assuming a logic error — the terminal's input-handling path itself was repeatedly the fault, not the command's logic. This became a recurring, load-bearing lesson throughout Phase 6, not a one-off.
 
 </details>
 
@@ -245,31 +339,72 @@ Added a Discord node in **Webhook connection mode** (rather than Bot Token, whic
 
 </details>
 
+<details>
+<summary><b>🔑 Test URL vs Production URL — the webhook only fires standalone once Published</b></summary>
+<br>
+
+> Early validation only ever used n8n's `/webhook-test/...` URL, which requires the editor's "Listen for test event" to be actively clicked — meaning the pipeline appeared to work, but only while someone was babysitting the UI. This would have been silently useless for real Wazuh integration. Root-caused by carefully distinguishing the Test URL tab from the Production URL tab on the Webhook node, and discovering this n8n version's **Publish** button (not a separate Active/Inactive toggle) is what makes the Production URL listen permanently. Confirmed fixed by firing a `curl` POST at the Production URL with zero interaction with the n8n editor and receiving a correct, fully-enriched Discord alert — proof the backend listener genuinely works standalone.
+
+</details>
+
+<details>
+<summary><b>🚫 ROOT CAUSE: Active Response silently suppressed by Wazuh's global active-response whitelist</b></summary>
+<br>
+
+> Rule `100010` confirmed firing correctly in `alerts.log` on every test, but **zero active-response dispatch ever occurred** — no execution log, no error, total silence, across multiple restart-and-retest cycles. Initially suspected a config typo, a missing `jq` dependency, or an agent/execd connectivity issue — all methodically ruled out one at a time (script manually verified working when piped test JSON directly; `wazuh-execd` confirmed alive and running on the agent; `wazuh-analysisd -t` config validation passed clean).
+>
+> Root-caused via `grep -i "white" /var/ossec/logs/ossec.log` on the Manager, revealing:
+> ```
+> White listing IP: '127.0.0.1'
+> 2 IPs in the white list for active response.
+> ```
+> Wazuh's `<global><white_list>` block in `ossec.conf` — which applies globally to **every** active-response command, not just `firewall-drop` — includes `127.0.0.1`. All brute-force test traffic had been generated as a **loopback attack** (`ssh baduser@127.0.0.1` run from Ubuntu-Victim against itself), so `srcip` always matched the whitelist and Wazuh silently suppressed dispatch regardless of which rule or command was involved.
+>
+> This is structurally the same lesson as Phase 0's "self-scan traffic invisible to Snort" finding, recurring at a completely different layer of the stack (active-response dispatch suppression vs. packet-capture interface visibility) — a good example of how the same underlying category of mistake (testing against yourself instead of a genuine external source) can resurface in unrelated subsystems.
+>
+> **Fix in progress:** regenerate the brute-force test **cross-host** (Wazuh-Manager → Ubuntu-Victim's real IP `10.0.2.14`), matching the same substitution pattern already used in Phases 0/1/2, combined with Phase 1's documented FIPS/KexAlgorithms fix (`-o KexAlgorithms=diffie-hellman-group14-sha256`) since the Manager's SSH client is FIPS-restricted.
+
+</details>
+
+<details>
+<summary><b>💾 Wazuh-Manager memory pressure causing intermittent SSH test failures</b></summary>
+<br>
+
+> While attempting the cross-host brute-force test fix above, SSH connections began intermittently timing out mid-loop (first attempt succeeds, subsequent attempts hang and time out) — happening consistently across two separate testing sessions. Initially suspected a firewall self-lockout repeat of the incident documented in Phase 5 (`firewall-drop` auto-blocking the Manager's own IP), but `iptables -L INPUT` on Ubuntu-Victim showed no DROP rule for `10.0.2.12`, ruling that out.
+>
+> `free -h` on the Wazuh-Manager revealed the real cause: only **253Mi available out of 2.9Gi total RAM, with zero swap configured** — compared to Ubuntu-Victim's healthy 645Mi available plus 2.1Gi swap as a safety buffer. This is a genuine host-level resource constraint (OpenSearch's memory footprint on the Manager, consistent with the OOM-kill pattern first documented in Phase 0) rather than a Wazuh configuration problem — reassuring in one sense, since it suggests the Active Response binding itself is likely correctly configured and simply needs a cleaner test run under less memory pressure.
+>
+> **Mitigation in progress:** spacing out the brute-force loop (`sleep 2` between attempts) and bounding each SSH attempt with `-o ConnectTimeout=10` to reduce burst load on the Manager and prevent one hung connection from stalling the whole test sequence.
+
+</details>
+
 ---
 
 ## 📌 Current Status Summary
 
-**Completed and verified — full workflow pipeline operational end-to-end:**
+**Completed and verified — full n8n pipeline operational end-to-end, including real-IP validation:**
 - ✅ Infrastructure decision made and documented (self-hosted + Cloudflare Tunnel vs. cloud VPS)
 - ✅ Security patching applied to host VM with Snort/Wazuh Agent regression-checked pre/post
 - ✅ Node.js 20.x LTS + n8n 2.8.4 installed, memory footprint empirically validated (~200Mi)
-- ✅ Cloudflare Tunnel (Quick Tunnel mode) installed and validated end-to-end (public URL → n8n editor load confirmed from external browser)
-- ✅ Webhook trigger node built: POST, random path, Header Auth secret — tested with simulated Wazuh alert payload
-- ✅ IP enrichment node built: `ip-api.com` HTTP Request with dynamic `srcip` expression — tested against placeholder IP
-- ✅ Message-formatting node (Edit Fields) — combines data across multiple upstream nodes with graceful fallback handling, verified fully resolved
-- ✅ Discord notification node — webhook-mode connection, **live test message successfully delivered** to a real Discord channel
+- ✅ Cloudflare Tunnel (Quick Tunnel mode) installed and validated end-to-end
+- ✅ Webhook trigger node built: POST, random path, Header Auth secret
+- ✅ IP enrichment node built and **validated against a real public IP** (`8.8.8.8` → genuine Ashburn, VA / Google LLC geolocation, not just the private-range placeholder test)
+- ✅ Message-formatting node (Edit Fields) — combines data across multiple upstream nodes with graceful fallback handling
+- ✅ Discord notification node — **live alert with real enrichment data delivered**
+- ✅ **Production URL confirmed genuinely backend-listening** — workflow Published, webhook fires correctly with zero n8n editor interaction
+- ✅ Custom Active Response script (`n8n-notify-debug.sh`) written, deployed with correct `root:wazuh` / `750` permissions matching Wazuh convention, and manually verified functional
+- ✅ Wazuh-Manager `ossec.conf` updated with new `<command>`/`<active-response>` blocks bound to rule `100010`, config validated, Manager restarted clean
 
-**Full pipeline confirmed working, end to end, with simulated alert data:**
-```
-curl (simulating Wazuh) → Cloudflare Tunnel → n8n Webhook (authenticated)
-  → IP enrichment (ip-api.com) → message formatting → Discord notification
-```
+**Active blocker, root-caused, fix in progress:**
+- 🔴 Active Response dispatch not yet firing end-to-end — root cause identified as Wazuh's global active-response IP whitelist silently suppressing dispatch for loopback-sourced test traffic (`127.0.0.1`). Fix (cross-host test traffic) identified and partially executed; currently contending with a secondary, unrelated Wazuh-Manager memory-pressure issue causing intermittent SSH test interruptions.
 
-**Remaining work (not yet started):**
-- ⏳ Full end-to-end test with a real public source IP (to validate ip-api.com enrichment against a genuine geolocation/ISP result, not just the "private range" test case — current test data uses `192.168.1.100`, a non-routable placeholder)
-- ⏳ Wazuh Active Response script configuration — the piece that will make Wazuh actually call this n8n webhook automatically on rule `5710`/`100010` firing, replacing the manual `curl` test script used throughout this build phase
-- ⏳ Decision + migration to a persistent Cloudflare **Named Tunnel** (stable URL, survives restarts) — deferred, Quick Tunnel sufficient for current build/test phase; current limitation is that every `cloudflared` restart issues a new random URL requiring manual reconfiguration downstream
-- ⏳ Final SOC-style alert reference table and before/after evidence, to be completed once the live end-to-end test (real Kali-generated attack → real Wazuh alert → automatic Discord notification) is run
+**Remaining work:**
+- ⏳ Complete one clean, full cross-host Active Response trigger test now that the whitelist root cause is understood
+- ⏳ Inspect the real Wazuh stdin JSON payload structure (via the debug script) to write correct `jq` parsing paths
+- ⏳ Replace `n8n-notify-debug.sh` with the production `n8n-notify.sh` — real `jq` parsing + `curl` POST to the n8n Production URL
+- ⏳ Full live test: real Kali-generated (or cross-host) SSH brute-force → rule `100010` fires → Active Response dispatches → n8n enriches → Discord notifies, with zero manual `curl` triggering anywhere in the chain
+- ⏳ Decision + migration to a persistent Cloudflare **Named Tunnel** (stable URL, survives restarts) — deferred, Quick Tunnel sufficient for current build/test phase
+- ⏳ Final SOC-style alert reference table and before/after evidence, to be completed once the live end-to-end automated trigger is confirmed working
 
 ---
 
