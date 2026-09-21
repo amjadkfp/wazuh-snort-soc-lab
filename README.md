@@ -242,7 +242,7 @@ wazuh-snort-soc-lab/
 │   ├── Phase4_Custom_Rule_Authoring.md
 │   ├── Phase5_Alert_Tuning_False_Positive_Reduction.md
 │   ├── Phase6_n8n_SOAR_Orchestration.md   ← In progress
-│   └── Final_Report.pdf                ← Consolidated writeup
+│   
 │
 ├── 📂 diagrams/
 │   ├── overall_system_architecture.png
