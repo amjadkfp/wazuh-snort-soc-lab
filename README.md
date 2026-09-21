@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🛡️ Self-Hosted SOC Lab: Threat Detection, Automated Response & 98% Alert Fatigue Reduction
+# 🛡️Self-Hosted SOC Lab: Threat Detection, Automated Response, Custom Rule Engineering & Alert Fatigue Reduction
 
 *A six-phase, hands-on SOC engineering project — from raw network intrusion detection to custom-authored SIEM correlation rules, formal alert tuning, and a self-hosted SOAR orchestration layer — built entirely in a self-hosted virtual lab.*
 
